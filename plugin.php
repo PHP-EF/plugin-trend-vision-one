@@ -181,12 +181,12 @@ class TrendVisionOne extends phpef {
             return $Result;    
         }
     }
-    private function refreshAuth() {
-        // Refresh authentication logic here
-        // For now, just reset the access token
-        $this->accessToken = null;
-        $this->tokenExpiration = null;
-    }
+    // private function refreshAuth() {
+    //     // Refresh authentication logic here
+    //     // For now, just reset the access token
+    //     $this->accessToken = null;
+    //     $this->tokenExpiration = null;
+    // }
 
         //// Everything after this line (188) is features and is permitted to be edited to build out the plugin features
 
@@ -274,19 +274,19 @@ class TrendVisionOne extends phpef {
 //         }
 //     }
 
-//     public function GetSessionsJobs() {
-//         try {
-//             if (!$this->auth->checkAccess($this->config->get("Plugins", "VeeamPlugin")['ACL-READ'] ?? "ACL-READ")) {
-//                 throw new Exception("Access Denied - Missing READ permissions");
-//             }
+    public function GetFullDesktops() {
+        try {
+            if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
+                throw new Exception("Access Denied - Missing READ permissions");
+            }
 
-//             $sessions = $this->makeApiRequest("GET", "v1/sessions");
-//             $this->api->setAPIResponse('Success', 'Sessions retrieved');
-//             $this->api->setAPIResponseData($sessions['data']); // Just pass the data array directly
-//             return true;
-//         } catch (Exception $e) {
-//             $this->api->setAPIResponse('Error', $e->getMessage());
-//             return false;
-//         }
-//     }
+            $sessions = $this->makeApiRequest("GET", "endpointSecurity/endpoints");
+            $this->api->setAPIResponse('Success', 'Sessions retrieved');
+            $this->api->setAPIResponseData($sessions['data']); // Just pass the data array directly
+            return true;
+        } catch (Exception $e) {
+            $this->api->setAPIResponse('Error', $e->getMessage());
+            return false;
+        }
+    }
 }
