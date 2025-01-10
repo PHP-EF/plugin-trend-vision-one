@@ -147,48 +147,48 @@ class TrendVisionOne extends phpef {
     }
 
 
-//         //Protected function to for making API Request to Veeam for Get/Post/Put/Delete
-//     public function makeApiRequest($Method, $Uri, $Data = "") {
-//         $config = $this->config->get('Plugins', 'VeeamPlugin');
-//         if (!isset($config['Veeam-URL']) || empty($config['Veeam-URL'])) {
-//             $this->api->setAPIResponse('Error','Veeam URL Missing');
-//             return false;
-//         }
-//         $veeamtoken = $this->getAccessToken($config);
-//         if (!isset($veeamtoken) || empty($veeamtoken)) {
-//             $this->api->setAPIResponse('Error','Veeam API Key Missing');
-//             return false;
-//         }
-//         $headers = array(
-//             'Accept' => 'application/json',
-//             'Authorization' => 'Bearer ' . $veeamtoken,
-//             'Content-Type' => 'application/x-www-form-urlencoded',
-//             'x-api-version' => '1.2-rev0'
-//         );
-//         $VeeamURL = $config['Veeam-URL'].'/api/'.$Uri;
-//         // echo $VeeamURL; //Used for diagnostics to make sure the Veeam URL is constructed correctly.
-//         if (in_array($Method,["GET","get"])) {
-//             $Result = $this->api->query->$Method($VeeamURL,$headers);
-//         } else {
-//             $Result = $this->api->query->$Method($VeeamURL,$Data,$headers);
-//         }
-//         // $Result = $this->api->query->$Method($VeeamURL,$headers);
-//         // print_r($Result);  //Used for out put of $Result or $haader for diagnostics
-//         if (isset($Result->status_code)){
-//             $this->api->setAPIResponse('Error',$Result->status_code);
-//             return false;
-//         }else{
-//             return $Result;    
-//         }
-//     }
-//     private function refreshAuth() {
-//         // Refresh authentication logic here
-//         // For now, just reset the access token
-//         $this->accessToken = null;
-//         $this->tokenExpiration = null;
-//     }
+        //Protected function to for making API Request to Veeam for Get/Post/Put/Delete
+    public function makeApiRequest($Method, $Uri, $Data = "") {
+        $config = $this->config->get('Plugins', 'TrendVisionOne');
+        if (!isset($config['TrendVisionOne-URL']) || empty($config['TrendVisionOne-URL'])) {
+            $this->api->setAPIResponse('Error','TrendVisionOne URL Missing');
+            return false;
+        }
+        $TrendVisionOnetoken = $this->getAccessToken($config);
+        if (!isset($TrendVisionOnetoken) || empty($TrendVisionOnetoken)) {
+            $this->api->setAPIResponse('Error','TrendVisionOne API Key Missing');
+            return false;
+        }
+        $headers = array(
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer ' . $TrendVisionOnetoken,
+            'Content-Type' => 'application/x-www-form-urlencoded',
+            'x-api-version' => '1.2-rev0'
+        );
+        $TrendVisionOneURL = $config['TrendVisionOne-URL'].'/api/'.$Uri;
+        // echo $VeeamURL; //Used for diagnostics to make sure the Veeam URL is constructed correctly.
+        if (in_array($Method,["GET","get"])) {
+            $Result = $this->api->query->$Method($TrendVisionOneURL,$headers);
+        } else {
+            $Result = $this->api->query->$Method($TrendVisionOneURL,$Data,$headers);
+        }
+        // $Result = $this->api->query->$Method($VeeamURL,$headers);
+        // print_r($Result);  //Used for out put of $Result or $haader for diagnostics
+        if (isset($Result->status_code)){
+            $this->api->setAPIResponse('Error',$Result->status_code);
+            return false;
+        }else{
+            return $Result;    
+        }
+    }
+    private function refreshAuth() {
+        // Refresh authentication logic here
+        // For now, just reset the access token
+        $this->accessToken = null;
+        $this->tokenExpiration = null;
+    }
 
-//         //// Everything after this line (188) is features and is permitted to be edited to build out the plugin features
+        //// Everything after this line (188) is features and is permitted to be edited to build out the plugin features
 
 //     public function getJobStatus() {
 //         try {
