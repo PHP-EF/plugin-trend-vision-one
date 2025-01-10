@@ -15,7 +15,7 @@ $app->get('/plugin/TrendVisionOne/settings', function ($request, $response, $arg
         ->withStatus($GLOBALS['responseCode']);
 });
 
-// Test Veeam Authentication
+// Test TrendVisionOne Authentication
 $app->get('/plugin/TrendVisionOne/test-auth', function ($request, $response, $args) {
     $TrendVisionOne = new TrendVisionOne();
     $TrendVisionOne->testAuth();
