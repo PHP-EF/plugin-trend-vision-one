@@ -289,4 +289,4 @@ class TrendVisionOne extends phpef {
 //             return false;
 //         }
 //     }
-// }
+}
