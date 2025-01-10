@@ -1,0 +1,17 @@
+[
+    {
+      "name": "TrendVisionOne",
+      "repo": "https://github.com/PHP-EF/plugin-trend-vision-one",
+      "author": "TinyTechLabUK",
+      "category": "Veeam B&R",
+      "description": "This PHP-EF plugin provides an Veeam Backup & Replication dashboard with Veeam Integration.",
+      "icon": "https://raw.githubusercontent.com/TehMuffinMoo/php-ef-plugin-cmdb/main/logo.png",
+      "contact": "https://github.com/PHP-EF/plugin-trend-vision-one/issues",
+      "link": "https://github.com/PHP-EF/plugin-trend-vision-one",
+      "version": "1.0.0.1",
+      "minimum_php-ef_version": "0.7.2",
+      "release_date": "2025-01-10",
+      "last_updated": "2025-01-10",
+      "github_folder": ""
+    }
+]
