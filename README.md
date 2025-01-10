@@ -1,0 +1,1 @@
+# plugin-trend-vision-one
