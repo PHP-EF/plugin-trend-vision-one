@@ -8,7 +8,7 @@
 $GLOBALS['plugins']['TrendVisionOne'] = [ // Plugin Name
 	'name' => 'TrendVisionOne', // Plugin Name
 	'author' => 'TinyTechLabUK', // Who wrote the plugin
-	'category' => 'Veeam B&R', // One to Two Word Description
+	'category' => 'Anti Virus', // One to Two Word Description
 	'link' => 'https://github.com/PHP-EF/plugin-trend-vision-one', // Link to plugin info
 	'version' => '1.0.0.1', // SemVer of plugin
 	'image' => 'logo.png', // 1:1 non transparent image for plugin
