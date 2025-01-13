@@ -11,13 +11,6 @@
 <script type="text/javascript" src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 
-<head>
-    <!-- Add these lines in the head section -->
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-    <script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-</head>
-
 <div class="container-fluid">
     <h1>Trend Vision One Overview</h1>
     
@@ -67,9 +60,9 @@
                 <table id="trendEndpointsTable" class="table table-striped">
                     <thead>
                         <tr>
-                            <th>Endpoint Name</th>
-                            <th>OS Name</th>
-                            <th>IP Address</th>
+                            <th class="align-bottom">Endpoint Name</th>
+                            <th class="align-bottom">OS Name</th>
+                            <th class="align-bottom">IP Address</th>
                             <th class="position-relative" style="min-width: 150px;">
                                 <div class="d-flex align-items-center">
                                     <span>Endpoint Group</span>
@@ -81,10 +74,10 @@
                                     </select>
                                 </div>
                             </th>
-                            <th>Last Connected</th>
-                            <th>Status</th>
-                            <th>Component Version</th>
-                            <th>Actions</th>
+                            <th class="align-bottom">Last Connected</th>
+                            <th class="align-bottom">Status</th>
+                            <th class="align-bottom">Component Version</th>
+                            <th class="align-bottom">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
