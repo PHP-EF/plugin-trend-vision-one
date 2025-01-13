@@ -200,13 +200,13 @@ class TrendVisionOne extends phpef {
             case '':
             case '/':
             case '/dashboard':
-                include(__DIR__ . '/pages/Trend-Vision-One-Dashboard.php');
+                require_once(__DIR__ . '/pages/Trend-Vision-One-Dashboard.php');
                 break;
             case '/client_workloads':
-                include(__DIR__ . '/pages/client_workloads.php');
+                require_once(__DIR__ . '/pages/client_workloads.php');
                 break;
             case '/server_workloads':
-                include(__DIR__ . '/pages/server_workloads.php');
+                require_once(__DIR__ . '/pages/server_workloads.php');
                 break;
             default:
                 http_response_code(404);
