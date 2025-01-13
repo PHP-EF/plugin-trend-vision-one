@@ -154,7 +154,7 @@ class TrendVisionOne extends phpef {
         return [
             [
                 'title' => 'Overview',
-                'link' => '/plugin/TrendVisionOne/dashboard',
+                'link' => '/plugin/TrendVisionOne',
                 'icon' => 'fas fa-tachometer-alt'
             ],
             [
@@ -168,6 +168,28 @@ class TrendVisionOne extends phpef {
                 'icon' => 'fas fa-server'
             ]
         ];
+    }
+
+    public function handleRequest($request)
+    {
+        $path = $request['path'] ?? '';
+        
+        switch ($path) {
+            case '':
+            case '/':
+                include(__DIR__ . '/pages/Trend-Vision-One-Dashboard.php');
+                break;
+            case '/client_workloads':
+                include(__DIR__ . '/pages/client_workloads.php');
+                break;
+            case '/server_workloads':
+                include(__DIR__ . '/pages/server_workloads.php');
+                break;
+            default:
+                http_response_code(404);
+                echo "Page not found";
+                break;
+        }
     }
 
     public function getFullApiUrl() {

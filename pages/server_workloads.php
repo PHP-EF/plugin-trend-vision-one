@@ -1,4 +1,6 @@
 <?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
 require_once(__DIR__ . '/../plugin.php');
 
 $plugin = new TrendVisionOnePlugin();
@@ -10,6 +12,8 @@ if (!$plugin->isAuthenticated()) {
 
 <div class="container-fluid mt-4">
     <h1>Trend Vision One Server Workloads</h1>
+    
+    <!-- Server Workloads Table -->
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
@@ -40,8 +44,10 @@ if (!$plugin->isAuthenticated()) {
 <?php include(__DIR__ . '/components/endpoint_details_modal.php'); ?>
 
 <script>
-    const workloadType = 'server';
-    $(document).ready(function() {
-        initializeEndpointsTable(workloadType);
-    });
+$(document).ready(function() {
+    initializeEndpointsTable('server');
+    
+    // Refresh data every 30 seconds
+    setInterval(() => initializeEndpointsTable('server'), 30000);
+});
 </script>

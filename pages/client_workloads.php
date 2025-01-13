@@ -10,6 +10,8 @@ if (!$plugin->isAuthenticated()) {
 
 <div class="container-fluid mt-4">
     <h1>Trend Vision One Client Workloads</h1>
+    
+    <!-- Client Workloads Table -->
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
@@ -40,8 +42,10 @@ if (!$plugin->isAuthenticated()) {
 <?php include(__DIR__ . '/components/endpoint_details_modal.php'); ?>
 
 <script>
-    const workloadType = 'client';
-    $(document).ready(function() {
-        initializeEndpointsTable(workloadType);
-    });
+$(document).ready(function() {
+    initializeEndpointsTable('client');
+    
+    // Refresh data every 30 seconds
+    setInterval(() => initializeEndpointsTable('client'), 30000);
+});
 </script>
