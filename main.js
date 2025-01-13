@@ -88,8 +88,20 @@ function updateEndpointsTable() {
                     // Display Name (using endpointName as fallback)
                     row.append(`<td>${endpoint.displayName || endpoint.endpointName || '-'}</td>`);
                     
-                    // OS Name (handle nested os object)
-                    const osName = endpoint.os?.name || (endpoint.os && endpoint.os.platform === 'Windows' ? 'Windows ' + endpoint.os.version : '-');
+                    // OS Name (handle all possible OS object structures)
+                    let osName = '-';
+                    if (endpoint.os) {
+                        if (endpoint.os.name) {
+                            osName = endpoint.os.name;
+                        } else if (endpoint.os.platform === 'Windows') {
+                            osName = 'Windows';
+                            if (endpoint.os.version) {
+                                // Remove "(Build xxxxx)" from version if present
+                                const versionWithoutBuild = endpoint.os.version.replace(/\s*\(Build \d+\)/, '');
+                                osName += ' ' + versionWithoutBuild;
+                            }
+                        }
+                    }
                     row.append(`<td>${osName}</td>`);
                     
                     // IP Address (get first available IP)
