@@ -110,13 +110,13 @@ function showEndpointDetails(endpointId) {
                 $('#osName').text(data.os?.name || '-');
                 $('#osVersion').text(data.os?.version || '-');
                 $('#ipAddresses').text(data.lastUsedIp || '-');
-                $('#lastConnectedDateTime').text(formatDateTime(data.lastConnectedDateTime) || '-');
+                $('#lastConnectedDateTime').text(formatDateTime(data.eppAgent?.lastConnectedDateTime) || '-');
                 $('#endpointStatus')
                     .text(data.agentUpdateStatus === 'onSchedule' ? 'Online' : 'Offline')
                     .removeClass()
                     .addClass(getEndpointStatusBadgeClass(data.agentUpdateStatus === 'onSchedule'));
-                $('#endpointGroup').text(data.endpointGroups?.[0] || '-');
-                $('#protectionManager').text(data.protectionManager?.protectionManager || '-');
+                $('#endpointGroup').text(data.eppAgent?.endpointGroup || '-');
+                $('#protectionManager').text(data.eppAgent?.protectionManager || '-');
                 
                 endpointModal.show();
             } else {
