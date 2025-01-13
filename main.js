@@ -45,7 +45,7 @@ function updateEndpointsTable() {
                 if (endpoints.length === 0) {
                     tableBody.html(`
                         <tr>
-                            <td colspan="7" class="text-center">
+                            <td colspan="6" class="text-center">
                                 No endpoints available
                             </td>
                         </tr>
@@ -59,7 +59,6 @@ function updateEndpointsTable() {
 
                     row.append(`<td>${endpoint.displayName || '-'}</td>`);
                     row.append(`<td>${endpoint.os?.name || '-'}</td>`);
-                    row.append(`<td>${endpoint.os?.version || '-'}</td>`);
                     row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
                     row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
                     
@@ -82,7 +81,7 @@ function updateEndpointsTable() {
                 console.error('Invalid response structure:', response);
                 $('#trendEndpointsTable tbody').html(`
                     <tr>
-                        <td colspan="7" class="text-center">
+                        <td colspan="6" class="text-center">
                             ${response.message || 'Error loading endpoints'}
                         </td>
                     </tr>
@@ -96,7 +95,7 @@ function updateEndpointsTable() {
             
             $('#trendEndpointsTable tbody').html(`
                 <tr>
-                    <td colspan="7" class="text-center text-danger">
+                    <td colspan="6" class="text-center text-danger">
                         <i class="fas fa-exclamation-triangle"></i> Error loading endpoints data
                     </td>
                 </tr>

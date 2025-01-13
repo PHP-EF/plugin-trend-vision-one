@@ -12,7 +12,6 @@
                                 <tr>
                                     <th>Endpoint Name</th>
                                     <th>OS Name</th>
-                                    <th>OS Version</th>
                                     <th>IP Address</th>
                                     <th>Last Connected</th>
                                     <th>Status</th>
@@ -96,7 +95,6 @@ $(document).ready(function() {
                     return [
                         item.displayName,
                         item.osName,
-                        item.osVersion,
                         item.ipAddresses ? item.ipAddresses.join(', ') : '',
                         item.lastConnectedDateTime,
                         '<span class="badge ' + (item.status === 'on' ? 'bg-success' : 'bg-danger') + '">' + 
@@ -110,7 +108,6 @@ $(document).ready(function() {
         "columns": [
             { "title": "Endpoint Name" },
             { "title": "OS Name" },
-            { "title": "OS Version" },
             { "title": "IP Address" },
             { "title": "Last Connected" },
             { "title": "Status" },
