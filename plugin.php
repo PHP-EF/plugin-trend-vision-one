@@ -249,10 +249,6 @@ class TrendVisionOne extends phpef {
             $baseUrl = $this->getTrendVisionOneUrl();
             $fullUrl = $this->getApiEndpoint("endpointSecurity/endpoints");
             
-            // Print URLs to browser console
-            // echo "<script>console.log('Base URL: " . $baseUrl . "');</script>";
-            // echo "<script>console.log('Full API URL: " . $fullUrl . "');</script>";
-            
             $result = $this->makeApiRequest("GET", "endpointSecurity/endpoints");
             
             if ($result === false) {
@@ -264,23 +260,40 @@ class TrendVisionOne extends phpef {
                 $this->api->setAPIResponse('Error', 'Failed to retrieve endpoints - Empty response');
                 return false;
             }
+
+            // Debug the response structure
+            error_log("API Response structure: " . print_r($result, true));
             
-            // Check if we have the expected response structure
-            if (isset($result->items)) {
+            // Check if we have a valid response with totalCount
+            if (isset($result->totalCount)) {
                 $responseData = [
-                    'totalCount' => $result->totalCount ?? 0,
-                    'count' => $result->count ?? 0,
+                    'totalCount' => $result->totalCount,
+                    'count' => $result->count,
                     'items' => $result->items ?? []
                 ];
-                $this->api->setAPIResponse('Success', 'Retrieved ' . ($result->count ?? 0) . ' endpoints');
+                $this->api->setAPIResponse('Success', 'Retrieved ' . ($result->count) . ' endpoints');
                 $this->api->setAPIResponseData($responseData);
             } else {
-                $this->api->setAPIResponse('Error', 'Unexpected API response structure');
-                return false;
+                // Handle direct array response
+                $items = json_decode(json_encode($result), true);
+                if (is_array($items)) {
+                    $responseData = [
+                        'totalCount' => count($items),
+                        'count' => count($items),
+                        'items' => $items
+                    ];
+                    $this->api->setAPIResponse('Success', 'Retrieved ' . count($items) . ' endpoints');
+                    $this->api->setAPIResponseData($responseData);
+                } else {
+                    error_log("Unexpected response format: " . gettype($result));
+                    $this->api->setAPIResponse('Error', 'Unexpected API response structure');
+                    return false;
+                }
             }
             
             return true;
         } catch (Exception $e) {
+            error_log("Error in GetFullDesktops: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
