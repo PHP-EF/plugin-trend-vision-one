@@ -98,7 +98,7 @@
                 <div class="mb-2 row">
                     <label class="col-sm-4 col-form-label">Connectivity:</label>
                     <div class="col-sm-8">
-                        <p class="form-control-plaintext" id="edrConnectivity">-</p>
+                        <p class="form-control-plaintext"><span id="edrConnectivity" class="badge">-</span></p>
                     </div>
                 </div>
                 <div class="mb-2 row">
@@ -116,13 +116,13 @@
                 <div class="mb-2 row">
                     <label class="col-sm-4 col-form-label">Status:</label>
                     <div class="col-sm-8">
-                        <p class="form-control-plaintext" id="edrStatus">-</p>
+                        <p class="form-control-plaintext"><span id="edrStatus" class="badge">-</span></p>
                     </div>
                 </div>
                 <div class="mb-2 row">
                     <label class="col-sm-4 col-form-label">Advanced Risk Telemetry:</label>
                     <div class="col-sm-8">
-                        <p class="form-control-plaintext" id="edrAdvancedRiskTelemetry">-</p>
+                        <p class="form-control-plaintext"><span id="edrAdvancedRiskTelemetry" class="badge">-</span></p>
                     </div>
                 </div>
             </div>
@@ -187,11 +187,20 @@ $(document).ready(function() {
                         .addClass(data.status === 'on' ? 'bg-success' : 'bg-danger');
                     $('#endpointGroup').text(data.endpointGroup || '');
                     $('#protectionManager').text(data.protectionManager || '');
-                    $('#edrConnectivity').text(data.edrConnectivity || '');
+                    $('#edrConnectivity')
+                        .text(data.edrConnectivity || '')
+                        .removeClass('bg-success bg-danger bg-warning')
+                        .addClass(data.edrConnectivity === 'Connected' ? 'bg-success' : data.edrConnectivity === 'Disconnected' ? 'bg-danger' : 'bg-warning');
                     $('#edrLastConnected').text(data.edrLastConnected || '');
                     $('#edrVersion').text(data.edrVersion || '');
-                    $('#edrStatus').text(data.edrStatus || '');
-                    $('#edrAdvancedRiskTelemetry').text(data.edrAdvancedRiskTelemetry || '');
+                    $('#edrStatus')
+                        .text(data.edrStatus || '')
+                        .removeClass('bg-success bg-danger bg-warning')
+                        .addClass(data.edrStatus === 'Healthy' ? 'bg-success' : data.edrStatus === 'Unhealthy' ? 'bg-danger' : 'bg-warning');
+                    $('#edrAdvancedRiskTelemetry')
+                        .text(data.edrAdvancedRiskTelemetry || '')
+                        .removeClass('bg-success bg-danger bg-warning')
+                        .addClass(data.edrAdvancedRiskTelemetry === 'Enabled' ? 'bg-success' : data.edrAdvancedRiskTelemetry === 'Disabled' ? 'bg-danger' : 'bg-warning');
                     $('#endpointDetailsModal').modal('show');
                 } else {
                     toastr.error('Failed to load endpoint details: ' + response.message);

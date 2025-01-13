@@ -127,15 +127,26 @@ function showEndpointDetails(endpointId) {
                 $('#protectionManager').text(data.eppAgent?.protectionManager || '-');
 
                 // EDR Information
-                if (data.edrSensor) {
-                    $('#edrConnectivity').text(data.edrSensor.connectivity || '-');
-                    $('#edrLastConnected').text(formatDateTime(data.edrSensor.lastConnectedDateTime) || '-');
-                    $('#edrVersion').text(data.edrSensor.version || '-');
-                    $('#edrStatus').text(data.edrSensor.status || '-');
-                    $('#edrAdvancedRiskTelemetry').text(data.edrSensor.advancedRiskTelemetryStatus || '-');
-                } else {
-                    $('#edrConnectivity, #edrLastConnected, #edrVersion, #edrStatus, #edrAdvancedRiskTelemetry').text('-');
-                }
+                // Connectivity badge
+                $('#edrConnectivity')
+                    .text(data.connectivity || '-')
+                    .removeClass('bg-success bg-danger')
+                    .addClass(data.connectivity?.toLowerCase() === 'connected' ? 'bg-success' : 'bg-danger');
+
+                $('#edrLastConnected').text(formatDateTime(data.lastConnectedDateTime) || '-');
+                $('#edrVersion').text(data.version || '-');
+
+                // Status badge
+                $('#edrStatus')
+                    .text(data.status || '-')
+                    .removeClass('bg-success bg-danger')
+                    .addClass(data.status?.toLowerCase() === 'enabled' ? 'bg-success' : 'bg-danger');
+
+                // Advanced Risk Telemetry badge
+                $('#edrAdvancedRiskTelemetry')
+                    .text(data.advancedRiskTelemetryStatus || '-')
+                    .removeClass('bg-success bg-danger')
+                    .addClass(data.advancedRiskTelemetryStatus?.toLowerCase() === 'enabled' ? 'bg-success' : 'bg-danger');
                 
                 endpointModal.show();
             } else {
