@@ -179,8 +179,25 @@ class TrendVisionOne extends phpef {
     {
         $path = $request['path'] ?? '';
 
-        // Handle JavaScript file request
-        if ($path === '/js/main.js') {
+        // Handle static files
+        if (strpos($path, '/static/') === 0) {
+            $filePath = __DIR__ . $path;
+            if (file_exists($filePath)) {
+                $ext = pathinfo($filePath, PATHINFO_EXTENSION);
+                $contentTypes = [
+                    'js' => 'application/javascript',
+                    'css' => 'text/css',
+                ];
+                if (isset($contentTypes[$ext])) {
+                    header('Content-Type: ' . $contentTypes[$ext]);
+                    readfile($filePath);
+                    exit;
+                }
+            }
+        }
+
+        // Handle main.js request
+        if ($path === '/main.js') {
             header('Content-Type: application/javascript');
             readfile(__DIR__ . '/main.js');
             exit;
