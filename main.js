@@ -46,8 +46,20 @@ function updateEndpointsTable() {
         success: function(response) {
             console.log('API Response:', response);
             
-            if (response && response.result === 'Success' && response.data && response.data.items && Array.isArray(response.data.items.items)) {
-                const endpoints = response.data.items.items;
+            if (response && response.result === 'Success' && response.data) {
+                let endpoints;
+                
+                // Handle both array and nested object responses
+                if (Array.isArray(response.data)) {
+                    endpoints = response.data;
+                } else if (response.data.items && Array.isArray(response.data.items)) {
+                    endpoints = response.data.items;
+                } else if (response.data.items && response.data.items.items && Array.isArray(response.data.items.items)) {
+                    endpoints = response.data.items.items;
+                } else {
+                    console.error('Unexpected response format:', response);
+                    return;
+                }
                 
                 // Update summary boxes
                 updateEndpointSummary(endpoints);
@@ -63,42 +75,50 @@ function updateEndpointsTable() {
                 
                 const tableBody = $('#trendEndpointsTable tbody');
                 tableBody.empty();
-
+                
                 if (filteredEndpoints.length === 0) {
-                    tableBody.html(`
-                        <tr>
-                            <td colspan="8" class="text-center">
-                                No endpoints available
-                            </td>
-                        </tr>
-                    `);
+                    tableBody.html('<tr><td colspan="8" class="text-center">No endpoints available</td></tr>');
                     return;
                 }
-
-                filteredEndpoints.forEach((endpoint, index) => {
-                    const row = $('<tr>');
-                    console.log(`Processing endpoint ${index}:`, endpoint);
-
-                    row.append(`<td>${endpoint.displayName || '-'}</td>`);
-                    row.append(`<td>${endpoint.os?.name || endpoint.osName || '-'}</td>`);
-                    row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
-                    row.append(`<td>${endpoint.eppAgent?.endpointGroup || '-'}</td>`);
-                    row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
-                    
-                    // Status column with badge
+                
+                filteredEndpoints.forEach(endpoint => {
                     const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
-                    const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
+                    const row = $('<tr>');
+                    
+                    // Display Name (using endpointName as fallback)
+                    row.append(`<td>${endpoint.displayName || endpoint.endpointName || '-'}</td>`);
+                    
+                    // OS Name (handle nested os object)
+                    const osName = endpoint.os?.name || (endpoint.os && endpoint.os.platform === 'Windows' ? 'Windows ' + endpoint.os.version : '-');
+                    row.append(`<td>${osName}</td>`);
+                    
+                    // IP Address (get first available IP)
+                    const ipAddress = endpoint.lastUsedIp || 
+                                    (endpoint.interfaces && endpoint.interfaces[0]?.ipAddresses?.[0]) || 
+                                    '-';
+                    row.append(`<td>${ipAddress}</td>`);
+                    
+                    // Endpoint Group
+                    row.append(`<td>${endpoint.eppAgent?.endpointGroup || endpoint.endpointGroup || '-'}</td>`);
+                    
+                    // Last Connected
+                    const lastConnected = endpoint.eppAgent?.lastConnectedDateTime || 
+                                        endpoint.lastConnected || 
+                                        '-';
+                    row.append(`<td>${formatDateTime(lastConnected)}</td>`);
+                    
+                    // Status
+                    const statusBadge = `<span class="badge ${isOnline ? 'bg-success' : 'bg-danger'}">${isOnline ? 'Online' : 'Offline'}</span>`;
                     row.append(`<td>${statusBadge}</td>`);
                     
-                    // Component Version column with badge
-                    const componentVersion = endpoint.eppAgent?.componentVersion || '-';
-                    const componentVersionClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
-                    row.append(`<td><span class="badge ${componentVersionClass}">${componentVersion}</span></td>`);
+                    // Component Version
+                    const componentVersion = endpoint.eppAgent?.componentVersion || endpoint.componentVersion || '-';
+                    const versionBadgeClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
+                    row.append(`<td><span class="badge ${versionBadgeClass}">${componentVersion}</span></td>`);
                     
-                    // Actions column with details button
+                    // Actions
                     const detailsButton = `
-                        <button class="btn btn-sm btn-info" 
-                                onclick='showEndpointDetails("${endpoint.agentGuid}")'>
+                        <button class="btn btn-sm btn-info" onclick="showEndpointDetails('${endpoint.agentGuid}')">
                             <i class="fas fa-info-circle"></i> Details
                         </button>`;
                     row.append(`<td>${detailsButton}</td>`);
@@ -106,28 +126,11 @@ function updateEndpointsTable() {
                     tableBody.append(row);
                 });
             } else {
-                console.error('Invalid response structure:', response);
-                $('#trendEndpointsTable tbody').html(`
-                    <tr>
-                        <td colspan="8" class="text-center">
-                            ${response.message || 'Error loading endpoints'}
-                        </td>
-                    </tr>
-                `);
+                console.error('Invalid response format:', response);
             }
         },
         error: function(xhr, status, error) {
-            console.error('Error:', error);
-            console.error('Status:', status);
-            console.error('Response:', xhr.responseText);
-            
-            $('#trendEndpointsTable tbody').html(`
-                <tr>
-                    <td colspan="8" class="text-center text-danger">
-                        <i class="fas fa-exclamation-triangle"></i> Error loading endpoints data
-                    </td>
-                </tr>
-            `);
+            console.error('Error fetching endpoints:', error);
         }
     });
 }
