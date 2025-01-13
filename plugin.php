@@ -250,8 +250,8 @@ class TrendVisionOne extends phpef {
             $fullUrl = $this->getApiEndpoint("endpointSecurity/endpoints");
             
             // Print URLs to browser console
-            echo "<script>console.log('Base URL: " . $baseUrl . "');</script>";
-            echo "<script>console.log('Full API URL: " . $fullUrl . "');</script>";
+            // echo "<script>console.log('Base URL: " . $baseUrl . "');</script>";
+            // echo "<script>console.log('Full API URL: " . $fullUrl . "');</script>";
             
             $result = $this->makeApiRequest("GET", "endpointSecurity/endpoints");
             
