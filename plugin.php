@@ -149,58 +149,89 @@ class TrendVisionOne extends phpef {
 
         //// Everything after this line (188) is features and is permitted to be edited to build out the plugin features
 
-    public function getMenuItems()
-    {
-        return [
-            [
-                'name' => 'Trend Vision One',
-                'link' => '/dashboard',
-                'icon' => 'fas fa-shield-alt'
-            ]
-        ];
-    }
+//     public function getJobStatus() {
+//         try {
+//             if (!$this->auth->checkAccess($this->config->get("Plugins", "VeeamPlugin")['ACL-READ'] ?? "ACL-READ")) {
+//                 throw new Exception("Access Denied - Missing READ permissions");
+//             }
 
-    public function getJsPath()
-    {
-        return '/api/page/plugin/TrendVisionOne/main.js';
-    }
+//             // Get all jobs sessions
+//             $states = $this->makeApiRequest("GET", "v1/jobs/states");
+            
+//             // For debugging
+//             echo "States Data Response:\n";
+//             print_r($states);
+            
+//             if (!$states) {
+//                 $this->api->setAPIResponse('Error', 'Failed to retrieve job states');
+//                 return false;
+//             }
 
-    public function handleRequest($request)
-    {
-        $path = $request['path'] ?? '';
+//             $jobStates = [];
+//             if (isset($states['data'])) {
+//                 $jobStates = $states['data'];
+//             }
 
-        // Make plugin instance available to included files
-        global $plugin;
-        $plugin = $this;
+//             $this->api->setAPIResponse('Success', 'Retrieved ' . count($jobStates) . ' job states');
+//             $this->api->setAPIResponseData($jobStates);
+//             return true;
+//         } catch (Exception $e) {
+//             $this->api->setAPIResponse('Error', $e->getMessage());
+//             return false;
+//         }
+//     }
 
-        // Handle main.js request
-        if (preg_match('#/main\.js$#', $path)) {
-            header('Content-Type: application/javascript');
-            readfile(__DIR__ . '/main.js');
-            exit;
-        }
-        
-        // Check authentication for page requests
-        if (!$this->isAuthenticated()) {
-            header('Location: ' . $this->getLoginUrl());
-            exit;
-        }
-        
-        // Add main.js script to page
-        echo '<script src="' . $this->getJsPath() . '"></script>';
-        
-        switch ($path) {
-            case '':
-            case '/':
-            case '/dashboard':
-                require_once(__DIR__ . '/pages/Trend-Vision-One-Dashboard.php');
-                break;
-            default:
-                http_response_code(404);
-                echo "Page not found";
-                break;
-        }
-    }
+//     public function getBackupJobs() {
+//         try {
+//             if (!$this->auth->checkAccess($this->config->get("Plugins", "VeeamPlugin")['ACL-READ'] ?? "ACL-READ")) {
+//                 throw new Exception("Access Denied - Missing READ permissions");
+//             }
+
+//             $jobsData = $this->makeApiRequest("GET","v1/jobs");
+//             if (!$jobsData) {
+//                 return false;
+//             }
+            
+//             echo "Jobs Data Response:\n";
+//             print_r($jobsData);
+            
+//             $jobs = [];
+//             if (isset($jobsData->data)) {
+//                 $jobs = $jobsData->data;
+//                 echo "\nParsed Jobs:\n";
+//                 print_r($jobs);
+//             } 
+            
+//             // $formattedJobs = [];
+//             // foreach ($jobs as $job) {
+//             //     if (!is_array($job)) continue;
+                
+//             //     $formattedJob = [
+//             //         'id' => $job->id ?? $job->Id ?? '',
+//             //         'name' => $job->name ?? $job->Name ?? '',
+//             //         'description' => $job->description ?? $job->Description ?? '',
+//             //         'type' => $job->type ?? $job->Type ?? '',
+//             //         'status' => $job->status ?? $job->Status ?? '',
+//             //         'lastRun' => $job->lastRun ?? $job->LastRun ?? '',
+//             //         'nextRun' => $job->nextRun ?? $job->NextRun ?? '',
+//             //         'target' => $job->target ?? $job->Target ?? '',
+//             //         'repository' => $job->repository ?? $job->Repository ?? '',
+//             //         'enabled' => $job->enabled ?? $job->Enabled ?? false
+//             //     ];
+                
+//             //     $formattedJobs[] = $formattedJob;
+//             // }
+            
+//             $this->api->setAPIResponse('Success', 'Retrieved ' . count($jobs) . ' backup jobs');
+//             $this->api->setAPIResponseData($jobs); //$formattedJobs
+//             return true;
+            
+//         } catch (Exception $e) {
+//             error_log("Error getting backup jobs: " . $e->getMessage());
+//             $this->api->setAPIResponse('Error', $e->getMessage());
+//             return false;
+//         }
+//     }
 
     public function getFullApiUrl() {
         try {

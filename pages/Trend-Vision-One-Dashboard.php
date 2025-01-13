@@ -1,131 +1,161 @@
-<?php
-// Authentication is handled by the plugin
-global $plugin;
-
-// Bootstrap and jQuery are included by the framework
-?>
-
-<div class="container-fluid mt-4">
-    <h1>Trend Vision One Dashboard</h1>
-    
-    <!-- Summary Boxes -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Total Endpoints</h5>
-                    <h2 id="totalEndpoints">-</h2>
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Trend Vision One Endpoints</h3>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h5 class="card-title">Online Endpoints</h5>
-                    <h2 id="onlineEndpoints">-</h2>
+                    <div class="table-responsive">
+                        <table id="trendEndpointsTable" class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint Name</th>
+                                    <th>OS Name</th>
+                                    <th>IP Address</th>
+                                    <th>Last Connected</th>
+                                    <th>Status</th>
+                                    <th>Component Version</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Offline Endpoints</h5>
-                    <h2 id="offlineEndpoints">-</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Outdated Components</h5>
-                    <h2 id="outdatedComponents">-</h2>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Endpoints Table -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">All Endpoints</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table id="trendEndpointsTable" class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Endpoint Name</th>
-                            <th>OS Name</th>
-                            <th>IP Address</th>
-                            <th>Last Connected</th>
-                            <th>Status</th>
-                            <th>Component Version</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td colspan="7" class="text-center">Loading...</td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Endpoint Details Modal -->
-<div class="modal fade" id="endpointDetailsModal" tabindex="-1">
+<!-- Modal for showing endpoint details -->
+<div class="modal fade" id="endpointDetailsModal" tabindex="-1" aria-labelledby="endpointDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Endpoint Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="endpointDetailsModalLabel">Endpoint Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- General Information -->
-                <h6 class="border-bottom pb-2">General Information</h6>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <p><strong>Agent GUID:</strong> <span id="agentGuid">-</span></p>
-                        <p><strong>Display Name:</strong> <span id="displayName">-</span></p>
-                        <p><strong>OS Name:</strong> <span id="osName">-</span></p>
-                        <p><strong>OS Version:</strong> <span id="osVersion">-</span></p>
+                <h6 class="mb-3">General Information</h6>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Agent GUID:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="agentGuid">-</p>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>IP Address:</strong> <span id="ipAddresses">-</span></p>
-                        <p><strong>Last Connected:</strong> <span id="lastConnectedDateTime">-</span></p>
-                        <p><strong>Status:</strong> <span id="endpointStatus" class="badge">-</span></p>
-                        <p><strong>Endpoint Group:</strong> <span id="endpointGroup">-</span></p>
-                        <p><strong>Protection Manager:</strong> <span id="protectionManager">-</span></p>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Display Name:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="displayName">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">OS Name:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="osName">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">OS Version:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="osVersion">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">IP Addresses:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="ipAddresses">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Last Connected:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="lastConnectedDateTime">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Status:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext"><span id="endpointStatus" class="badge">-</span></p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Endpoint Group:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="endpointGroup">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Protection Manager:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="protectionManager">-</p>
                     </div>
                 </div>
 
-                <!-- EPP Information -->
-                <h6 class="border-bottom pb-2">EPP Information</h6>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <p><strong>Policy Name:</strong> <span id="eppPolicyName">-</span></p>
-                        <p><strong>Status:</strong> <span id="eppStatus" class="badge">-</span></p>
+                <h6 class="mt-4 mb-3">EDR Information</h6>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Connectivity:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext"><span id="edrConnectivity" class="badge">-</span></p>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Last Connected:</strong> <span id="eppLastConnected">-</span></p>
-                        <p><strong>Version:</strong> <span id="eppVersion">-</span></p>
-                        <p><strong>Component Version:</strong> <span id="eppComponentVersion" class="badge">-</span></p>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Last Connected:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="edrLastConnected">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Version:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="edrVersion">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Status:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext"><span id="edrStatus" class="badge">-</span></p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Advanced Risk Telemetry:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext"><span id="edrAdvancedRiskTelemetry" class="badge">-</span></p>
                     </div>
                 </div>
 
-                <!-- EDR Information -->
-                <h6 class="border-bottom pb-2">EDR Information</h6>
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Connectivity:</strong> <span id="edrConnectivity" class="badge">-</span></p>
-                        <p><strong>Last Connected:</strong> <span id="edrLastConnected">-</span></p>
+                <h6 class="mt-4 mb-3">EPP Information</h6>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Policy Name:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="eppPolicyName">-</p>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Version:</strong> <span id="edrVersion">-</span></p>
-                        <p><strong>Status:</strong> <span id="edrStatus" class="badge">-</span></p>
-                        <p><strong>Risk Telemetry:</strong> <span id="edrRiskTelemetry" class="badge">-</span></p>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Status:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext"><span id="eppStatus" class="badge">-</span></p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Last Connected:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="eppLastConnected">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Version:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="eppVersion">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Component Version:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext"><span id="eppComponentVersion" class="badge">-</span></p>
                     </div>
                 </div>
             </div>
@@ -138,14 +168,6 @@ global $plugin;
 
 <script>
 $(document).ready(function() {
-    // Initial load
-    initializeEndpointsTable();
-    
-    // Refresh data every 30 seconds
-    setInterval(() => initializeEndpointsTable(), 30000);
-});
-
-function initializeEndpointsTable() {
     // Initialize DataTable
     var table = $('#trendEndpointsTable').DataTable({
         "processing": true,
@@ -235,5 +257,5 @@ function initializeEndpointsTable() {
             }
         });
     });
-}
+});
 </script>
