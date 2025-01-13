@@ -246,6 +246,61 @@ $(document).ready(function() {
     endpointModal = new bootstrap.Modal(document.getElementById('endpointDetailsModal'));
 });
 
+// Initial setup
+$(document).ready(function() {
+    // Handle filter icon click
+    $('#endpointGroupFilterIcon').click(function(e) {
+        e.stopPropagation();
+        const container = $('#endpointGroupFilterContainer');
+        const icon = $(this);
+        const iconPos = icon.offset();
+        
+        container.css({
+            top: iconPos.top + icon.height() + 5,
+            left: iconPos.left - container.width() + icon.width()
+        }).toggle();
+    });
+
+    // Close filter dropdown when clicking outside
+    $(document).click(function(e) {
+        if (!$(e.target).closest('#endpointGroupFilterContainer').length) {
+            $('#endpointGroupFilterContainer').hide();
+        }
+    });
+
+    // Add filter change handler
+    $('#endpointGroupFilter').on('change', function() {
+        updateEndpointsTable();
+        // Add active class to icon when filter is applied
+        $('#endpointGroupFilterIcon').toggleClass('text-primary', $(this).val() !== '');
+    });
+
+    // Add filter dropdown to the table header
+    $('#trendEndpointsTable thead tr').prepend(`
+        <tr>
+            <th colspan="8">
+                <div class="d-flex justify-content-end align-items-center mb-2">
+                    <label for="endpointGroupFilter" class="me-2">Filter by Group:</label>
+                    <div id="endpointGroupFilterContainer" class="dropdown">
+                        <button id="endpointGroupFilterIcon" class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                        <select id="endpointGroupFilter" class="form-select form-select-sm dropdown-menu" style="width: auto;">
+                            <option value="">All Groups</option>
+                        </select>
+                    </div>
+                </div>
+            </th>
+        </tr>
+    `);
+
+    // Initial load of endpoints data
+    updateEndpointsTable();
+    
+    // Refresh data every 30 seconds
+    setInterval(updateEndpointsTable, 30000);
+});
+
 // Add custom styles
 $('<style>')
     .text(`
@@ -265,34 +320,13 @@ $('<style>')
         }
         th {
             white-space: nowrap;
+            position: relative;
+        }
+        #endpointGroupFilterIcon:hover {
+            color: #0d6efd !important;
+        }
+        #endpointGroupFilterContainer {
+            min-width: 200px;
         }
     `)
     .appendTo('head');
-
-// Initial setup
-$(document).ready(function() {
-    // Add filter dropdown to the table header
-    $('#trendEndpointsTable thead tr').prepend(`
-        <tr>
-            <th colspan="8">
-                <div class="d-flex justify-content-end align-items-center mb-2">
-                    <label for="endpointGroupFilter" class="me-2">Filter by Group:</label>
-                    <select id="endpointGroupFilter" class="form-select form-select-sm" style="width: auto;">
-                        <option value="">All Groups</option>
-                    </select>
-                </div>
-            </th>
-        </tr>
-    `);
-
-    // Add filter change handler
-    $('#endpointGroupFilter').on('change', function() {
-        updateEndpointsTable();
-    });
-
-    // Initial load of endpoints data
-    updateEndpointsTable();
-    
-    // Refresh data every 30 seconds
-    setInterval(updateEndpointsTable, 30000);
-});

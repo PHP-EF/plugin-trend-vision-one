@@ -65,9 +65,12 @@
                             <th>IP Address</th>
                             <th>
                                 Endpoint Group
-                                <select id="endpointGroupFilter" class="form-select form-select-sm mt-1" style="width: 100%; min-width: 120px;">
-                                    <option value="">All Groups</option>
-                                </select>
+                                <i class="fas fa-filter ms-2 text-muted" style="cursor: pointer;" id="endpointGroupFilterIcon"></i>
+                                <div id="endpointGroupFilterContainer" class="position-absolute bg-white border rounded p-2 shadow" style="display: none; z-index: 1000;">
+                                    <select id="endpointGroupFilter" class="form-select form-select-sm" style="min-width: 200px;">
+                                        <option value="">All Groups</option>
+                                    </select>
+                                </div>
                             </th>
                             <th>Last Connected</th>
                             <th>Status</th>
