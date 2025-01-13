@@ -259,6 +259,13 @@ $('<style>')
         .table td {
             vertical-align: middle;
         }
+        #endpointGroupFilter {
+            font-size: 0.875rem;
+            padding: 0.25rem;
+        }
+        th {
+            white-space: nowrap;
+        }
     `)
     .appendTo('head');
 

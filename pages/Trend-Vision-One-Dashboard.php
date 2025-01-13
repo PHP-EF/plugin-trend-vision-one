@@ -63,7 +63,12 @@
                             <th>Endpoint Name</th>
                             <th>OS Name</th>
                             <th>IP Address</th>
-                            <th>Endpoint Group</th>
+                            <th>
+                                Endpoint Group
+                                <select id="endpointGroupFilter" class="form-select form-select-sm mt-1" style="width: 100%; min-width: 120px;">
+                                    <option value="">All Groups</option>
+                                </select>
+                            </th>
                             <th>Last Connected</th>
                             <th>Status</th>
                             <th>Component Version</th>
