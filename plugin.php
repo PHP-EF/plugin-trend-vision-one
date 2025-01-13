@@ -308,4 +308,51 @@ class TrendVisionOne extends phpef {
             return false;
         }
     }
+
+    public function GetEndpointDetails($endpointId = null) {
+        try {
+            if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
+                throw new Exception("Access Denied - Missing READ permissions");
+            }
+
+            // Check if endpoint ID is provided
+            if (empty($endpointId)) {
+                throw new Exception("Endpoint ID is required");
+            }
+
+            $endpoint = "endpointSecurity/endpoints/" . urlencode($endpointId);
+            $result = $this->makeApiRequest("GET", $endpoint);
+            
+            if ($result === false) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve endpoint details - API request failed');
+                return false;
+            }
+
+            if (empty($result)) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve endpoint details - Empty response');
+                return false;
+            }
+
+            // Debug the response structure
+            error_log("API Response structure for endpoint $endpointId: " . print_r($result, true));
+            
+            // Convert response to array if it's an object
+            $details = json_decode(json_encode($result), true);
+            
+            if (is_array($details)) {
+                $this->api->setAPIResponse('Success', 'Retrieved endpoint details');
+                $this->api->setAPIResponseData($details);
+            } else {
+                error_log("Unexpected response format: " . gettype($result));
+                $this->api->setAPIResponse('Error', 'Unexpected API response structure');
+                return false;
+            }
+            
+            return true;
+        } catch (Exception $e) {
+            error_log("Error in GetEndpointDetails: " . $e->getMessage());
+            $this->api->setAPIResponse('Error', $e->getMessage());
+            return false;
+        }
+    }
 }

@@ -35,6 +35,16 @@ $app->get('/plugin/TrendVisionOne/getfulldesktops', function ($request, $respons
         ->withStatus($GLOBALS['responseCode']);
 });
 
+// Get endpoint details
+$app->get('/plugin/TrendVisionOne/getendpointdetails/{id}', function ($request, $response, $args) {
+    $TrendVisionOne = new TrendVisionOne();
+    $TrendVisionOne->GetEndpointDetails($args['id']);
+    $response->getBody()->write(jsonE($GLOBALS['api']));
+    return $response
+        ->withHeader('Content-Type', 'application/json;charset=UTF-8')
+        ->withStatus($GLOBALS['responseCode']);
+});
+
 // // Get Veeam Backup Jobs
 // $app->get('/plugin/TrendVisionOne/jobs', function ($request, $response, $args) {
 //     $TrendVisionOne = new TrendVisionOne();
