@@ -230,12 +230,24 @@ class TrendVisionOne extends phpef {
                 throw new Exception("Access Denied - Missing READ permissions");
             }
 
+            $baseUrl = $this->getTrendVisionOneUrl();
+            $fullUrl = $this->getApiEndpoint("endpointSecurity/endpoints");
+            
+            // Print URLs to browser console
+            echo "<script>console.log('Base URL: " . $baseUrl . "');</script>";
+            echo "<script>console.log('Full API URL: " . $fullUrl . "');</script>";
+            
             $result = $this->makeApiRequest("GET", "endpointSecurity/endpoints");
-            if (!$result) {
-                throw new Exception("Failed to retrieve endpoints");
+            
+            if ($result === false) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve endpoints - API request failed');
+                return false;
             }
 
-            error_log("Full API Response in GetFullDesktops: " . json_encode($result));
+            if (empty($result)) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve endpoints - Empty response');
+                return false;
+            }
             
             // Check if we have the expected response structure
             if (isset($result->items)) {
@@ -247,17 +259,12 @@ class TrendVisionOne extends phpef {
                 $this->api->setAPIResponse('Success', 'Retrieved ' . ($result->count ?? 0) . ' endpoints');
                 $this->api->setAPIResponseData($responseData);
             } else {
-                $this->api->setAPIResponse('Success', 'No endpoints found');
-                $this->api->setAPIResponseData([
-                    'totalCount' => 0,
-                    'count' => 0,
-                    'items' => []
-                ]);
+                $this->api->setAPIResponse('Error', 'Unexpected API response structure');
+                return false;
             }
             
             return true;
         } catch (Exception $e) {
-            error_log("Error in GetFullDesktops: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
