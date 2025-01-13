@@ -1,13 +1,6 @@
 <?php
-defined('BASEPATH') or exit('No direct script access allowed');
-
-require_once(BASEPATH . '/inc/plugins/TrendVisionOne/plugin.php');
-
-$plugin = new TrendVisionOnePlugin();
-if (!$plugin->isAuthenticated()) {
-    header('Location: ' . $plugin->getLoginUrl());
-    exit;
-}
+// Authentication is handled by the plugin
+global $plugin;
 ?>
 
 <div class="container-fluid mt-4">

@@ -172,9 +172,15 @@ class TrendVisionOne extends phpef {
 
     public function handleRequest($request)
     {
-        if (!defined('BASEPATH')) {
-            define('BASEPATH', '/var/www/html');
+        // Check authentication first
+        if (!$this->isAuthenticated()) {
+            header('Location: ' . $this->getLoginUrl());
+            exit;
         }
+
+        // Make plugin instance available to included files
+        global $plugin;
+        $plugin = $this;
 
         $path = $request['path'] ?? '';
         
