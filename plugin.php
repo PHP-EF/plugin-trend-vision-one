@@ -21,7 +21,7 @@ class TrendVisionOne extends phpef {
 
     public function __construct() {
         parent::__construct();
-        $this->pluginConfig = $this->config->get('Plugins','TrendVisionOne') ?? [];
+        $this->pluginConfig = $this->config->get('Plugins','TrendVisionOne') ?? [];
     }
 
         //Protected function to define the settings for this plugin
