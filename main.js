@@ -251,21 +251,18 @@ $(document).ready(function() {
     // Handle filter icon click
     $('#endpointGroupFilterIcon').click(function(e) {
         e.stopPropagation();
-        const container = $('#endpointGroupFilterContainer');
-        const icon = $(this);
-        const th = icon.closest('th');
-        const thPos = th.offset();
+        const filterSelect = $('#endpointGroupFilter');
+        filterSelect.toggle();
         
-        container.css({
-            top: thPos.top + th.outerHeight(),
-            left: thPos.left
-        }).toggle();
+        if (filterSelect.is(':visible')) {
+            filterSelect.focus();
+        }
     });
 
     // Close filter dropdown when clicking outside
     $(document).click(function(e) {
-        if (!$(e.target).closest('#endpointGroupFilterContainer').length) {
-            $('#endpointGroupFilterContainer').hide();
+        if (!$(e.target).closest('#endpointGroupFilter').length) {
+            $('#endpointGroupFilter').hide();
         }
     });
 
@@ -274,7 +271,7 @@ $(document).ready(function() {
         updateEndpointsTable();
         // Add active class to icon when filter is applied
         $('#endpointGroupFilterIcon').toggleClass('text-primary', $(this).val() !== '');
-        $('#endpointGroupFilterContainer').hide();
+        $(this).hide();
     });
 
     // Initial load of endpoints data
@@ -297,26 +294,24 @@ $('<style>')
         .table td {
             vertical-align: middle;
         }
+        .table th {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            vertical-align: bottom;
+        }
         #endpointGroupFilter {
             font-size: 0.875rem;
             padding: 0.25rem;
-        }
-        th {
-            white-space: nowrap;
-            position: relative;
-        }
-        #endpointGroupFilterIcon:hover {
-            color: #0d6efd !important;
-        }
-        #endpointGroupFilterContainer {
-            min-width: 200px;
             position: absolute;
+            width: calc(100% - 2rem);
             z-index: 1000;
             background: white;
             border: 1px solid #dee2e6;
             border-radius: 0.25rem;
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            padding: 0.5rem;
+        }
+        #endpointGroupFilterIcon:hover {
+            color: #0d6efd !important;
         }
     `)
     .appendTo('head');

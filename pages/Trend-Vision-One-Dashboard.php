@@ -60,17 +60,24 @@
                 <table id="trendEndpointsTable" class="table table-striped">
                     <thead>
                         <tr>
-                            <th>Endpoint Name</th>
-                            <th>OS Name</th>
-                            <th>IP Address</th>
-                            <th style="min-width: 150px;">
-                                Endpoint Group
-                                <i class="fas fa-filter ms-2 text-muted" style="cursor: pointer;" id="endpointGroupFilterIcon"></i>
+                            <th class="align-bottom">Endpoint Name</th>
+                            <th class="align-bottom">OS Name</th>
+                            <th class="align-bottom">IP Address</th>
+                            <th class="position-relative" style="min-width: 150px; height: 60px;">
+                                <div class="d-flex flex-column h-100">
+                                    <span>Endpoint Group</span>
+                                    <div class="mt-2">
+                                        <select id="endpointGroupFilter" class="form-select form-select-sm" style="display: none;">
+                                            <option value="">All Groups</option>
+                                        </select>
+                                        <i class="fas fa-filter text-muted" style="cursor: pointer;" id="endpointGroupFilterIcon"></i>
+                                    </div>
+                                </div>
                             </th>
-                            <th>Last Connected</th>
-                            <th>Status</th>
-                            <th>Component Version</th>
-                            <th>Actions</th>
+                            <th class="align-bottom">Last Connected</th>
+                            <th class="align-bottom">Status</th>
+                            <th class="align-bottom">Component Version</th>
+                            <th class="align-bottom">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -80,13 +87,6 @@
             </div>
         </div>
     </div>
-</div>
-
-<!-- Filter Container -->
-<div id="endpointGroupFilterContainer" style="display: none;">
-    <select id="endpointGroupFilter" class="form-select form-select-sm">
-        <option value="">All Groups</option>
-    </select>
 </div>
 
 <!-- Modal for showing endpoint details -->
