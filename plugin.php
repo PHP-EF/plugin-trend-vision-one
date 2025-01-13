@@ -105,6 +105,11 @@ class TrendVisionOne extends phpef {
             );
 
             $url = $this->getApiEndpoint($Uri);
+            error_log("Making request to URL: " . $url);
+            error_log("Headers: " . json_encode($headers));
+            if ($Data) {
+                error_log("Request Data: " . json_encode($Data));
+            }
             
             if (in_array($Method, ["GET", "get"])) {
                 $Result = $this->api->query->$Method($url, $headers);
@@ -112,13 +117,16 @@ class TrendVisionOne extends phpef {
                 $Result = $this->api->query->$Method($url, $Data, $headers);
             }
 
-            if (isset($Result->status_code)) {
-                throw new Exception("API request failed with status code: " . $Result->status_code);
+            error_log("API Response: " . json_encode($Result));
+
+            if (isset($Result->status_code) && $Result->status_code >= 400) {
+                throw new Exception("API request failed with status code: " . $Result->status_code . ", Response: " . json_encode($Result));
             }
 
             return $Result;
 
         } catch (Exception $e) {
+            error_log("TrendVisionOne API Error: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
