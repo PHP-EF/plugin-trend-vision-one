@@ -49,49 +49,84 @@ function updateEndpointsTable() {
                 // Update summary boxes
                 updateEndpointSummary(endpoints);
                 
-                const tableBody = $('#trendEndpointsTable tbody');
-                tableBody.empty();
+                // Initialize DataTable
+                var table = $('#trendEndpointsTable').DataTable({
+                    "processing": true,
+                    "serverSide": false,
+                    "columns": [
+                        { "data": "displayName" },
+                        { "data": "os.name" },
+                        { "data": "lastUsedIp" },
+                        { "data": "eppAgent.endpointGroup" },
+                        { "data": "lastConnectedDateTime" },
+                        { "data": "agentUpdateStatus" },
+                        { "data": "eppAgent.componentVersion" },
+                        { "data": null, "orderable": false }
+                    ],
+                    "columnDefs": [
+                        {
+                            "targets": 3,
+                            "render": function(data, type, row) {
+                                return row.eppAgent?.endpointGroup || '-';
+                            }
+                        },
+                        {
+                            "targets": 5,
+                            "render": function(data, type, row) {
+                                const isOnline = row.agentUpdateStatus === 'onSchedule';
+                                return `<span class="badge ${isOnline ? 'bg-success' : 'bg-danger'} text-white">
+                                    ${isOnline ? 'Online' : 'Offline'}</span>`;
+                            }
+                        },
+                        {
+                            "targets": 6,
+                            "render": function(data, type, row) {
+                                const version = row.eppAgent?.componentVersion || '-';
+                                const isOutdated = version.toLowerCase() === 'outdatedversion';
+                                return `<span class="badge ${isOutdated ? 'bg-danger' : 'bg-success'} text-white">
+                                    ${version}</span>`;
+                            }
+                        },
+                        {
+                            "targets": -1,
+                            "render": function(data, type, row) {
+                                return `<button class="btn btn-info btn-sm" onclick="showEndpointDetails('${row.agentGuid}')">
+                                    <i class="fas fa-info-circle"></i> Details</button>`;
+                            }
+                        }
+                    ],
+                    "order": [[0, 'asc']],
+                    "pageLength": 25,
+                    "dom": '<"top"lf>rt<"bottom"ip><"clear">',
+                    "initComplete": function() {
+                        // Add filter for Endpoint Group
+                        this.api().columns(3).every(function() {
+                            var column = this;
+                            var select = $('<select class="form-select form-select-sm"><option value="">All Groups</option></select>')
+                                .appendTo($(column.header()))
+                                .on('change', function() {
+                                    var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                                    column.search(val ? '^'+val+'$' : '', true, false).draw();
+                                });
 
-                if (endpoints.length === 0) {
-                    tableBody.html(`
-                        <tr>
-                            <td colspan="7" class="text-center">
-                                No endpoints available
-                            </td>
-                        </tr>
-                    `);
-                    return;
-                }
-
-                endpoints.forEach((endpoint, index) => {
-                    const row = $('<tr>');
-                    console.log(`Processing endpoint ${index}:`, endpoint);
-
-                    row.append(`<td>${endpoint.displayName || '-'}</td>`);
-                    row.append(`<td>${endpoint.os?.name || endpoint.osName || '-'}</td>`);
-                    row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
-                    row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
-                    
-                    // Status column with badge
-                    const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
-                    const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
-                    row.append(`<td>${statusBadge}</td>`);
-                    
-                    // Component Version column with badge
-                    const componentVersion = endpoint.eppAgent?.componentVersion || '-';
-                    const componentVersionClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
-                    row.append(`<td><span class="badge ${componentVersionClass}">${componentVersion}</span></td>`);
-                    
-                    // Actions column with details button
-                    const detailsButton = `
-                        <button class="btn btn-sm btn-info" 
-                                onclick='showEndpointDetails("${endpoint.agentGuid}")'>
-                            <i class="fas fa-info-circle"></i> Details
-                        </button>`;
-                    row.append(`<td>${detailsButton}</td>`);
-                    
-                    tableBody.append(row);
+                            // Get unique endpoint groups
+                            var groups = new Set();
+                            column.data().unique().sort().each(function(d) {
+                                if (d) groups.add(d);
+                            });
+                            
+                            // Add options
+                            groups.forEach(function(group) {
+                                select.append('<option value="'+group+'">'+group+'</option>');
+                            });
+                        });
+                    }
                 });
+                
+                // Add data to DataTable
+                table.clear();
+                table.rows.add(endpoints);
+                table.draw();
             } else {
                 console.error('Invalid response structure:', response);
                 $('#trendEndpointsTable tbody').html(`
