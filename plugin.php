@@ -179,8 +179,12 @@ class TrendVisionOne extends phpef {
     {
         $path = $request['path'] ?? '';
 
+        // Make plugin instance available to included files
+        global $plugin;
+        $plugin = $this;
+
         // Handle main.js request
-        if ($path === '/main.js') {
+        if ($path === '/main.js' || $path === 'main.js') {
             header('Content-Type: application/javascript');
             readfile(__DIR__ . '/main.js');
             exit;
@@ -191,10 +195,6 @@ class TrendVisionOne extends phpef {
             header('Location: ' . $this->getLoginUrl());
             exit;
         }
-
-        // Make plugin instance available to included files
-        global $plugin;
-        $plugin = $this;
         
         switch ($path) {
             case '':
