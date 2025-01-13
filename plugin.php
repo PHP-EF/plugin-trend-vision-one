@@ -153,19 +153,9 @@ class TrendVisionOne extends phpef {
     {
         return [
             [
-                'title' => 'Overview',
-                'link' => '/plugin/TrendVisionOne/dashboard',
-                'icon' => 'fas fa-tachometer-alt'
-            ],
-            [
-                'title' => 'Client Workloads',
-                'link' => '/plugin/TrendVisionOne/client_workloads',
-                'icon' => 'fas fa-laptop'
-            ],
-            [
-                'title' => 'Server Workloads',
-                'link' => '/plugin/TrendVisionOne/server_workloads',
-                'icon' => 'fas fa-server'
+                'name' => 'Trend Vision One',
+                'link' => '/dashboard',
+                'icon' => 'fas fa-shield-alt'
             ]
         ];
     }
@@ -201,12 +191,6 @@ class TrendVisionOne extends phpef {
             case '/':
             case '/dashboard':
                 require_once(__DIR__ . '/pages/Trend-Vision-One-Dashboard.php');
-                break;
-            case '/client_workloads':
-                require_once(__DIR__ . '/pages/client_workloads.php');
-                break;
-            case '/server_workloads':
-                require_once(__DIR__ . '/pages/server_workloads.php');
                 break;
             default:
                 http_response_code(404);

@@ -7,7 +7,7 @@ require_once(__DIR__ . '/components/header.php');
 ?>
 
 <div class="container-fluid mt-4">
-    <h1>Trend Vision One Overview</h1>
+    <h1>Trend Vision One Dashboard</h1>
     
     <!-- Summary Boxes -->
     <div class="row mb-4">
@@ -22,16 +22,16 @@ require_once(__DIR__ . '/components/header.php');
         <div class="col-md-3">
             <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h5 class="card-title">Client Workloads</h5>
-                    <h2 id="clientWorkloads">-</h2>
+                    <h5 class="card-title">Online Endpoints</h5>
+                    <h2 id="onlineEndpoints">-</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-info text-white">
+            <div class="card bg-danger text-white">
                 <div class="card-body">
-                    <h5 class="card-title">Server Workloads</h5>
-                    <h2 id="serverWorkloads">-</h2>
+                    <h5 class="card-title">Offline Endpoints</h5>
+                    <h2 id="offlineEndpoints">-</h2>
                 </div>
             </div>
         </div>
@@ -80,6 +80,7 @@ require_once(__DIR__ . '/components/header.php');
 
 <script>
 $(document).ready(function() {
+    // Initial load
     initializeEndpointsTable('all');
     
     // Refresh data every 30 seconds

@@ -15,13 +15,22 @@ function formatDateTime(dateString) {
 
 // Function to update endpoint summary boxes
 function updateEndpointSummary(endpoints) {
+    if (!endpoints || !Array.isArray(endpoints)) {
+        console.error('Invalid endpoints data:', endpoints);
+        return;
+    }
+
     const totalEndpoints = endpoints.length;
     const onlineEndpoints = endpoints.filter(endpoint => endpoint.agentUpdateStatus === 'onSchedule').length;
     const offlineEndpoints = totalEndpoints - onlineEndpoints;
+    const outdatedComponents = endpoints.filter(endpoint => 
+        endpoint.eppAgent?.componentVersion?.toLowerCase() === 'outdatedversion'
+    ).length;
 
     $('#totalEndpoints').text(totalEndpoints);
     $('#onlineEndpoints').text(onlineEndpoints);
     $('#offlineEndpoints').text(offlineEndpoints);
+    $('#outdatedComponents').text(outdatedComponents);
 }
 
 // Function to get appropriate badge class for endpoint status
@@ -29,59 +38,8 @@ function getEndpointStatusBadgeClass(isOnline) {
     return isOnline ? 'badge bg-success text-white' : 'badge bg-danger text-white';
 }
 
-// Function to check if an OS is a client workload
-function isClientWorkload(osName) {
-    const clientOSPatterns = [
-        /windows 7/i,
-        /windows 10/i,
-        /windows 11/i,
-        /macos/i
-    ];
-    return clientOSPatterns.some(pattern => pattern.test(osName));
-}
-
-// Function to filter endpoints by workload type
-function filterEndpoints(endpoints, workloadType) {
-    if (workloadType === 'all') {
-        return endpoints;
-    }
-    
-    return endpoints.filter(endpoint => {
-        const osName = endpoint.os?.name || endpoint.osName || '';
-        const isClient = isClientWorkload(osName);
-        return workloadType === 'client' ? isClient : !isClient;
-    });
-}
-
-// Function to update summary boxes
-function updateSummaryBoxes(endpoints) {
-    if (!endpoints || !Array.isArray(endpoints)) {
-        console.error('Invalid endpoints data:', endpoints);
-        return;
-    }
-
-    const clientWorkloads = endpoints.filter(endpoint => {
-        const osName = endpoint.os?.name || endpoint.osName || '';
-        return isClientWorkload(osName);
-    });
-
-    const serverWorkloads = endpoints.filter(endpoint => {
-        const osName = endpoint.os?.name || endpoint.osName || '';
-        return !isClientWorkload(osName);
-    });
-
-    const outdatedComponents = endpoints.filter(endpoint => 
-        endpoint.eppAgent?.componentVersion?.toLowerCase() === 'outdatedversion'
-    );
-
-    $('#totalEndpoints').text(endpoints.length);
-    $('#clientWorkloads').text(clientWorkloads.length);
-    $('#serverWorkloads').text(serverWorkloads.length);
-    $('#outdatedComponents').text(outdatedComponents.length);
-}
-
 // Function to initialize the endpoints table
-function initializeEndpointsTable(workloadType) {
+function initializeEndpointsTable() {
     const tableBody = $('#trendEndpointsTable tbody');
     
     $.ajax({
@@ -89,18 +47,13 @@ function initializeEndpointsTable(workloadType) {
         method: 'GET',
         success: function(response) {
             if (response.result === 'Success' && Array.isArray(response.data)) {
-                // Update summary boxes if on overview page
-                if (workloadType === 'all') {
-                    updateSummaryBoxes(response.data);
-                }
+                updateEndpointSummary(response.data);
                 
-                const filteredEndpoints = filterEndpoints(response.data, workloadType);
-                
-                if (filteredEndpoints.length === 0) {
+                if (response.data.length === 0) {
                     tableBody.html(`
                         <tr>
                             <td colspan="7" class="text-center">
-                                No ${workloadType} workloads available
+                                No endpoints available
                             </td>
                         </tr>
                     `);
@@ -108,7 +61,7 @@ function initializeEndpointsTable(workloadType) {
                 }
 
                 tableBody.empty();
-                filteredEndpoints.forEach((endpoint, index) => {
+                response.data.forEach((endpoint, index) => {
                     const row = $('<tr>');
 
                     row.append(`<td>${endpoint.displayName || '-'}</td>`);
@@ -232,8 +185,8 @@ $(document).ready(function() {
 
 // Initial load of endpoints data
 $(document).ready(function() {
-    initializeEndpointsTable('client');
+    initializeEndpointsTable();
     
     // Refresh data every 30 seconds
-    setInterval(() => initializeEndpointsTable('client'), 30000);
+    setInterval(() => initializeEndpointsTable(), 30000);
 });
