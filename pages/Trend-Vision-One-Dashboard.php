@@ -67,19 +67,9 @@
                 <table id="trendEndpointsTable" class="table table-striped">
                     <thead>
                         <tr>
-                            <th class="align-bottom">Endpoint Name</th>
-                            <th class="position-relative" style="min-width: 150px;">
-                                <div class="d-flex align-items-center">
-                                    <span>OS Name</span>
-                                    <i class="fas fa-filter ms-2 text-muted" style="cursor: pointer;" id="osNameFilterIcon"></i>
-                                </div>
-                                <div id="osNameFilterContainer" class="filter-dropdown" style="display: none;">
-                                    <select id="osNameFilter" class="form-select form-select-sm">
-                                        <option value="">All OS</option>
-                                    </select>
-                                </div>
-                            </th>
-                            <th class="align-bottom">IP Address</th>
+                            <th>Endpoint Name</th>
+                            <th>OS Name</th>
+                            <th>IP Address</th>
                             <th class="position-relative" style="min-width: 150px;">
                                 <div class="d-flex align-items-center">
                                     <span>Endpoint Group</span>
@@ -91,30 +81,10 @@
                                     </select>
                                 </div>
                             </th>
-                            <th class="align-bottom">Last Connected</th>
-                            <th class="position-relative" style="min-width: 100px;">
-                                <div class="d-flex align-items-center">
-                                    <span>Status</span>
-                                    <i class="fas fa-filter ms-2 text-muted" style="cursor: pointer;" id="statusFilterIcon"></i>
-                                </div>
-                                <div id="statusFilterContainer" class="filter-dropdown" style="display: none;">
-                                    <select id="statusFilter" class="form-select form-select-sm">
-                                        <option value="">All Status</option>
-                                    </select>
-                                </div>
-                            </th>
-                            <th class="position-relative" style="min-width: 150px;">
-                                <div class="d-flex align-items-center">
-                                    <span>Component Version</span>
-                                    <i class="fas fa-filter ms-2 text-muted" style="cursor: pointer;" id="versionFilterIcon"></i>
-                                </div>
-                                <div id="versionFilterContainer" class="filter-dropdown" style="display: none;">
-                                    <select id="versionFilter" class="form-select form-select-sm">
-                                        <option value="">All Versions</option>
-                                    </select>
-                                </div>
-                            </th>
-                            <th class="align-bottom">Actions</th>
+                            <th>Last Connected</th>
+                            <th>Status</th>
+                            <th>Component Version</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>

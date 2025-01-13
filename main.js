@@ -248,127 +248,131 @@ $(document).ready(function() {
 
 // Initial setup
 $(document).ready(function() {
-    // Initialize DataTable
-    const table = $('#trendEndpointsTable').DataTable({
-        responsive: true,
-        pageLength: 25,
-        columns: [
-            { data: 'displayName' },
-            { data: 'osName' },
-            { data: 'lastUsedIp' },
-            { data: 'endpointGroup' },
-            { data: 'lastConnected' },
-            { data: 'status' },
-            { data: 'componentVersion' },
-            { data: 'actions' }
-        ]
-    });
-
-    // Setup filter handlers for all filter columns
-    const filterColumns = [
-        { id: 'osName', title: 'OS' },
-        { id: 'endpointGroup', title: 'Groups' },
-        { id: 'status', title: 'Status' },
-        { id: 'version', title: 'Versions' }
-    ];
-
-    filterColumns.forEach(column => {
-        // Handle filter icon click
-        $(`#${column.id}FilterIcon`).click(function(e) {
-            e.stopPropagation();
-            const container = $(`#${column.id}FilterContainer`);
-            $('.filter-dropdown').not(container).hide(); // Hide other dropdowns
-            container.toggle();
-            
-            if (container.is(':visible')) {
-                $(`#${column.id}Filter`).focus();
-            }
-        });
-
-        // Add filter change handler
-        $(`#${column.id}Filter`).on('change', function() {
-            const selectedValue = $(this).val();
-            updateEndpointsTable();
-            // Add active class to icon when filter is applied
-            $(`#${column.id}FilterIcon`).toggleClass('text-primary', selectedValue !== '');
-            $(`#${column.id}FilterContainer`).hide();
-        });
+    // Handle filter icon click
+    $('#endpointGroupFilterIcon').click(function(e) {
+        e.stopPropagation();
+        const container = $('#endpointGroupFilterContainer');
+        container.toggle();
+        
+        if (container.is(':visible')) {
+            $('#endpointGroupFilter').focus();
+        }
     });
 
     // Close filter dropdown when clicking outside
     $(document).click(function(e) {
-        if (!$(e.target).closest('.filter-dropdown').length && 
-            !$(e.target).closest('[id$="FilterIcon"]').length) {
-            $('.filter-dropdown').hide();
+        if (!$(e.target).closest('#endpointGroupFilterContainer').length && 
+            !$(e.target).closest('#endpointGroupFilterIcon').length) {
+            $('#endpointGroupFilterContainer').hide();
         }
     });
 
-    // Function to populate filter dropdowns
-    function populateFilters(endpoints) {
-        if (!Array.isArray(endpoints)) {
-            console.error('Endpoints data is not an array:', endpoints);
+    // Add filter change handler
+    $('#endpointGroupFilter').on('change', function() {
+        const selectedValue = $(this).val();
+        updateEndpointsTable();
+        // Add active class to icon when filter is applied
+        $('#endpointGroupFilterIcon').toggleClass('text-primary', selectedValue !== '');
+        $('#endpointGroupFilterContainer').hide();
+    });
+
+    // Function to populate filter dropdown
+    function populateEndpointGroupFilter(data) {
+        if (!Array.isArray(data)) {
+            console.error('Data is not an array:', data);
             return;
         }
 
-        const filters = {
-            osName: new Set(),
-            endpointGroup: new Set(),
-            status: new Set(),
-            version: new Set()
-        };
+        const select = $('#endpointGroupFilter');
+        const currentValue = select.val();
+        select.find('option:not(:first)').remove();
 
-        // Collect unique values
-        endpoints.forEach(endpoint => {
-            if (endpoint.os?.name) filters.osName.add(endpoint.os.name);
-            if (endpoint.eppAgent?.endpointGroup) filters.endpointGroup.add(endpoint.eppAgent.endpointGroup);
-            filters.status.add(endpoint.agentUpdateStatus === 'onSchedule' ? 'Online' : 'Offline');
-            if (endpoint.eppAgent?.componentVersion) filters.version.add(endpoint.eppAgent.componentVersion);
+        // Get unique endpoint groups
+        const groups = [...new Set(data.map(item => item.eppAgent?.endpointGroup).filter(Boolean))].sort();
+        
+        // Add options
+        groups.forEach(group => {
+            select.append($('<option>', {
+                value: group,
+                text: group
+            }));
         });
 
-        // Update each filter dropdown
-        Object.keys(filters).forEach(key => {
-            const select = $(`#${key}Filter`);
-            const currentValue = select.val(); // Store current selection
-            select.find('option:not(:first)').remove(); // Clear existing options except first
-
-            // Add new options
-            [...filters[key]].sort().forEach(value => {
-                if (value) { // Only add non-empty values
-                    select.append($('<option>', {
-                        value: value,
-                        text: value
-                    }));
-                }
-            });
-
-            // Restore selection if it still exists in new options
-            if (currentValue && [...filters[key]].includes(currentValue)) {
-                select.val(currentValue);
-            }
-        });
+        // Restore previous selection if it exists
+        if (currentValue && groups.includes(currentValue)) {
+            select.val(currentValue);
+        }
     }
 
-    // Function to format the data for DataTables
-    function formatEndpointData(endpoint) {
-        const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
-        const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
-        const componentVersion = endpoint.eppAgent?.componentVersion || '-';
-        const componentVersionClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
-        const detailsButton = `
-            <button class="btn btn-sm btn-info" onclick='showEndpointDetails("${endpoint.agentGuid}")'>
-                <i class="fas fa-info-circle"></i> Details
-            </button>`;
+    // Function to update table content
+    function updateTableContent(data) {
+        const tableBody = $('#trendEndpointsTable tbody');
+        tableBody.empty();
 
-        return {
-            displayName: endpoint.displayName || '-',
-            osName: endpoint.os?.name || '-',
-            lastUsedIp: endpoint.lastUsedIp || '-',
-            endpointGroup: endpoint.eppAgent?.endpointGroup || '-',
-            lastConnected: formatDateTime(endpoint.eppAgent?.lastConnectedDateTime) || '-',
-            status: statusBadge,
-            componentVersion: `<span class="badge ${componentVersionClass}">${componentVersion}</span>`,
-            actions: detailsButton
-        };
+        if (data.length === 0) {
+            tableBody.html('<tr><td colspan="8" class="text-center">No endpoints available</td></tr>');
+            return;
+        }
+
+        // Get selected group filter
+        const selectedGroup = $('#endpointGroupFilter').val();
+
+        // Filter data if group is selected
+        const filteredData = selectedGroup 
+            ? data.filter(item => item.eppAgent?.endpointGroup === selectedGroup)
+            : data;
+
+        filteredData.forEach(endpoint => {
+            const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
+            const row = $('<tr>');
+
+            row.append(`<td>${endpoint.displayName || '-'}</td>`);
+            row.append(`<td>${endpoint.os?.name || '-'}</td>`);
+            row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
+            row.append(`<td>${endpoint.eppAgent?.endpointGroup || '-'}</td>`);
+            row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
+            
+            // Status column with badge
+            const statusBadge = `<span class="badge ${isOnline ? 'bg-success' : 'bg-danger'}">${isOnline ? 'Online' : 'Offline'}</span>`;
+            row.append(`<td>${statusBadge}</td>`);
+            
+            // Component Version column with badge
+            const componentVersion = endpoint.eppAgent?.componentVersion || '-';
+            const versionBadgeClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
+            row.append(`<td><span class="badge ${versionBadgeClass}">${componentVersion}</span></td>`);
+            
+            // Actions column
+            const detailsButton = `
+                <button class="btn btn-sm btn-info" onclick="showEndpointDetails('${endpoint.agentGuid}')">
+                    <i class="fas fa-info-circle"></i> Details
+                </button>`;
+            row.append(`<td>${detailsButton}</td>`);
+            
+            tableBody.append(row);
+        });
+
+        // Update summary boxes
+        updateSummaryBoxes(data);
+    }
+
+    // Function to update summary boxes
+    function updateSummaryBoxes(data) {
+        const totalEndpoints = data.length;
+        const clientWorkloads = data.filter(e => e.os?.name?.toLowerCase().includes('windows')).length;
+        const serverWorkloads = data.filter(e => e.os?.name?.toLowerCase().includes('server')).length;
+        const outdatedComponents = data.filter(e => e.eppAgent?.componentVersion?.toLowerCase() === 'outdatedversion').length;
+
+        $('#totalEndpoints').text(totalEndpoints);
+        $('#clientWorkloads').text(clientWorkloads);
+        $('#serverWorkloads').text(serverWorkloads);
+        $('#outdatedComponents').text(outdatedComponents);
+    }
+
+    // Function to format date time
+    function formatDateTime(dateTimeStr) {
+        if (!dateTimeStr) return '-';
+        const date = new Date(dateTimeStr);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     }
 
     // Update endpoints table
@@ -382,49 +386,13 @@ $(document).ready(function() {
                     return;
                 }
 
-                populateFilters(response);
-                
-                // Apply all filters
-                const filters = {
-                    osName: $('#osNameFilter').val(),
-                    endpointGroup: $('#endpointGroupFilter').val(),
-                    status: $('#statusFilter').val(),
-                    version: $('#versionFilter').val()
-                };
-
-                const filteredData = response.filter(endpoint => {
-                    return (!filters.osName || endpoint.os?.name === filters.osName) &&
-                           (!filters.endpointGroup || endpoint.eppAgent?.endpointGroup === filters.endpointGroup) &&
-                           (!filters.status || (endpoint.agentUpdateStatus === 'onSchedule' ? 'Online' : 'Offline') === filters.status) &&
-                           (!filters.version || endpoint.eppAgent?.componentVersion === filters.version);
-                });
-
-                // Format data for DataTables
-                const formattedData = filteredData.map(formatEndpointData);
-                
-                // Clear and reload table data
-                table.clear().rows.add(formattedData).draw();
-
-                // Update summary boxes
-                updateSummaryBoxes(response);
+                populateEndpointGroupFilter(response);
+                updateTableContent(response);
             },
             error: function(xhr, status, error) {
                 console.error('Error fetching endpoints:', error);
             }
         });
-    }
-
-    // Function to update summary boxes
-    function updateSummaryBoxes(endpoints) {
-        const totalEndpoints = endpoints.length;
-        const clientWorkloads = endpoints.filter(e => e.os?.name?.toLowerCase().includes('windows')).length;
-        const serverWorkloads = endpoints.filter(e => e.os?.name?.toLowerCase().includes('server')).length;
-        const outdatedComponents = endpoints.filter(e => e.eppAgent?.componentVersion?.toLowerCase() === 'outdatedversion').length;
-
-        $('#totalEndpoints').text(totalEndpoints);
-        $('#clientWorkloads').text(clientWorkloads);
-        $('#serverWorkloads').text(serverWorkloads);
-        $('#outdatedComponents').text(outdatedComponents);
     }
 
     // Initial load of endpoints data
@@ -433,18 +401,6 @@ $(document).ready(function() {
     // Refresh data every 30 seconds
     setInterval(updateEndpointsTable, 30000);
 });
-
-// Helper function to get status badge class
-function getEndpointStatusBadgeClass(isOnline) {
-    return `badge ${isOnline ? 'bg-success' : 'bg-danger'}`;
-}
-
-// Helper function to format date time
-function formatDateTime(dateTimeStr) {
-    if (!dateTimeStr) return '-';
-    const date = new Date(dateTimeStr);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-}
 
 // Add custom styles
 $('<style>')
@@ -482,13 +438,13 @@ $('<style>')
             padding: 0.25rem;
             width: 100%;
         }
-        [id$="FilterIcon"] {
+        #endpointGroupFilterIcon {
             transition: color 0.2s;
         }
-        [id$="FilterIcon"]:hover {
+        #endpointGroupFilterIcon:hover {
             color: #0d6efd !important;
         }
-        [id$="FilterIcon"].text-primary {
+        #endpointGroupFilterIcon.text-primary {
             color: #0d6efd !important;
         }
     `)
