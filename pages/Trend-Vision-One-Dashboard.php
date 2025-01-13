@@ -1,3 +1,16 @@
+<?php
+// Add required CSS and JS for DataTables
+?>
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+
+<!-- DataTables JavaScript -->
+<script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
 <div class="container-fluid">
     <h1 class="mb-4">Trend Vision One Overview</h1>
     
@@ -201,6 +214,28 @@
         </div>
     </div>
 </div>
+
+<!-- Add custom styles -->
+<style>
+    /* DataTables header filter styling */
+    .dataTables_wrapper .dataTables_filter {
+        margin-bottom: 1rem;
+    }
+    
+    /* Make the group filter dropdown look nice */
+    .form-select-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        border-radius: 0.2rem;
+        width: auto;
+        display: inline-block;
+    }
+    
+    /* Ensure table headers align properly with filters */
+    #trendEndpointsTable thead th {
+        padding-bottom: 15px;
+    }
+</style>
 
 <script>
 $(document).ready(function() {

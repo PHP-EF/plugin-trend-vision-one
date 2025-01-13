@@ -13,6 +13,69 @@ function formatDateTime(dateString) {
     }).replace(',', '');
 }
 
+// Global variable for DataTable
+let endpointsTable;
+
+$(document).ready(function() {
+    // Initialize DataTable
+    endpointsTable = $('#trendEndpointsTable').DataTable({
+        "processing": true,
+        "serverSide": false,
+        "responsive": true,
+        "columns": [
+            { "data": "displayName" },
+            { "data": "os.name" },
+            { "data": "lastUsedIp" },
+            { "data": "eppAgent.endpointGroup" },
+            { "data": "lastConnectedDateTime" },
+            { "data": "agentUpdateStatus" },
+            { "data": "eppAgent.componentVersion" },
+            { "data": null, "orderable": false }
+        ],
+        "columnDefs": [
+            {
+                "targets": 3,
+                "render": function(data, type, row) {
+                    return row.eppAgent?.endpointGroup || '-';
+                }
+            },
+            {
+                "targets": 5,
+                "render": function(data, type, row) {
+                    const isOnline = row.agentUpdateStatus === 'onSchedule';
+                    return `<span class="badge ${isOnline ? 'bg-success' : 'bg-danger'} text-white">
+                        ${isOnline ? 'Online' : 'Offline'}</span>`;
+                }
+            },
+            {
+                "targets": 6,
+                "render": function(data, type, row) {
+                    const version = row.eppAgent?.componentVersion || '-';
+                    const isOutdated = version.toLowerCase() === 'outdatedversion';
+                    return `<span class="badge ${isOutdated ? 'bg-danger' : 'bg-success'} text-white">
+                        ${version}</span>`;
+                }
+            },
+            {
+                "targets": -1,
+                "render": function(data, type, row) {
+                    return `<button class="btn btn-info btn-sm" onclick="showEndpointDetails('${row.agentGuid}')">
+                        <i class="fas fa-info-circle"></i> Details</button>`;
+                }
+            }
+        ],
+        "order": [[0, 'asc']],
+        "pageLength": 25,
+        "dom": '<"top"lf>rt<"bottom"ip><"clear">'
+    });
+
+    // Initial load of endpoints data
+    updateEndpointsTable();
+    
+    // Refresh data every 30 seconds
+    setInterval(updateEndpointsTable, 30000);
+});
+
 // Function to update endpoint summary boxes
 function updateEndpointSummary(endpoints) {
     const totalEndpoints = endpoints.length;
@@ -49,107 +112,47 @@ function updateEndpointsTable() {
                 // Update summary boxes
                 updateEndpointSummary(endpoints);
                 
-                // Initialize DataTable
-                var table = $('#trendEndpointsTable').DataTable({
-                    "processing": true,
-                    "serverSide": false,
-                    "columns": [
-                        { "data": "displayName" },
-                        { "data": "os.name" },
-                        { "data": "lastUsedIp" },
-                        { "data": "eppAgent.endpointGroup" },
-                        { "data": "lastConnectedDateTime" },
-                        { "data": "agentUpdateStatus" },
-                        { "data": "eppAgent.componentVersion" },
-                        { "data": null, "orderable": false }
-                    ],
-                    "columnDefs": [
-                        {
-                            "targets": 3,
-                            "render": function(data, type, row) {
-                                return row.eppAgent?.endpointGroup || '-';
-                            }
-                        },
-                        {
-                            "targets": 5,
-                            "render": function(data, type, row) {
-                                const isOnline = row.agentUpdateStatus === 'onSchedule';
-                                return `<span class="badge ${isOnline ? 'bg-success' : 'bg-danger'} text-white">
-                                    ${isOnline ? 'Online' : 'Offline'}</span>`;
-                            }
-                        },
-                        {
-                            "targets": 6,
-                            "render": function(data, type, row) {
-                                const version = row.eppAgent?.componentVersion || '-';
-                                const isOutdated = version.toLowerCase() === 'outdatedversion';
-                                return `<span class="badge ${isOutdated ? 'bg-danger' : 'bg-success'} text-white">
-                                    ${version}</span>`;
-                            }
-                        },
-                        {
-                            "targets": -1,
-                            "render": function(data, type, row) {
-                                return `<button class="btn btn-info btn-sm" onclick="showEndpointDetails('${row.agentGuid}')">
-                                    <i class="fas fa-info-circle"></i> Details</button>`;
-                            }
-                        }
-                    ],
-                    "order": [[0, 'asc']],
-                    "pageLength": 25,
-                    "dom": '<"top"lf>rt<"bottom"ip><"clear">',
-                    "initComplete": function() {
-                        // Add filter for Endpoint Group
-                        this.api().columns(3).every(function() {
-                            var column = this;
-                            var select = $('<select class="form-select form-select-sm"><option value="">All Groups</option></select>')
-                                .appendTo($(column.header()))
-                                .on('change', function() {
-                                    var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                                    column.search(val ? '^'+val+'$' : '', true, false).draw();
-                                });
+                // Update DataTable
+                endpointsTable.clear();
+                endpointsTable.rows.add(endpoints);
+                endpointsTable.draw();
 
-                            // Get unique endpoint groups
-                            var groups = new Set();
-                            column.data().unique().sort().each(function(d) {
-                                if (d) groups.add(d);
+                // Add filter for Endpoint Group if not already added
+                if (!$('#trendEndpointsTable th:eq(3) select').length) {
+                    endpointsTable.columns(3).every(function() {
+                        var column = this;
+                        var select = $('<select class="form-select form-select-sm"><option value="">All Groups</option></select>')
+                            .appendTo($(column.header()))
+                            .on('change', function() {
+                                var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                                column.search(val ? '^'+val+'$' : '', true, false).draw();
                             });
-                            
-                            // Add options
-                            groups.forEach(function(group) {
-                                select.append('<option value="'+group+'">'+group+'</option>');
-                            });
+
+                        // Get unique endpoint groups
+                        var groups = new Set();
+                        column.data().unique().sort().each(function(d) {
+                            if (d) groups.add(d);
                         });
-                    }
-                });
-                
-                // Add data to DataTable
-                table.clear();
-                table.rows.add(endpoints);
-                table.draw();
+                        
+                        // Add options
+                        groups.forEach(function(group) {
+                            select.append('<option value="'+group+'">'+group+'</option>');
+                        });
+                    });
+                }
             } else {
                 console.error('Invalid response structure:', response);
-                $('#trendEndpointsTable tbody').html(`
-                    <tr>
-                        <td colspan="7" class="text-center">
-                            ${response.message || 'Error loading endpoints'}
-                        </td>
-                    </tr>
-                `);
+                endpointsTable.clear().draw();
+                alert('Error loading endpoints data');
             }
         },
         error: function(xhr, status, error) {
-            console.error('Error fetching endpoints:', error);
+            console.error('Error:', error);
             console.error('Status:', status);
             console.error('Response:', xhr.responseText);
             
-            $('#trendEndpointsTable tbody').html(`
-                <tr>
-                    <td colspan="7" class="text-center text-danger">
-                        <i class="fas fa-exclamation-triangle"></i> Error loading endpoints data
-                    </td>
-                </tr>
-            `);
+            endpointsTable.clear().draw();
+            alert('Error loading endpoints data');
         }
     });
 }
@@ -258,11 +261,3 @@ $('<style>')
         }
     `)
     .appendTo('head');
-
-// Initial load of endpoints data
-$(document).ready(function() {
-    updateEndpointsTable();
-    
-    // Refresh data every 30 seconds
-    setInterval(updateEndpointsTable, 30000);
-});
