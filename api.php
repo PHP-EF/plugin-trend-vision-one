@@ -16,7 +16,7 @@ $app->get('/plugin/TrendVisionOne/settings', function ($request, $response, $arg
 });
 
 // Test TrendVisionOne Authentication
-$app->get('/plugin/TrendVisionOne/test-auth', function ($request, $response, $args) {
+$app->get('/plugin/TrendVisionOne/getfulldesktops', function ($request, $response, $args) {
     $TrendVisionOne = new TrendVisionOne();
     $TrendVisionOne->GetFullDesktops();
     $response->getBody()->write(jsonE($GLOBALS['api']));
