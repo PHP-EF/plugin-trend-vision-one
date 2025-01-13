@@ -47,13 +47,19 @@ class TrendVisionOne extends phpef {
     }
 
         //Protected function to define the api and build the required api for the plugin
-    private function getApiEndpoint($path) {
+    private function getApiEndpoint($path, $params = []) {
         $baseUrl = $this->getTrendVisionOneUrl();
         // Ensure path starts with /v3.0
         if (strpos($path, '/v3.0/') !== 0) {
             $path = '/v3.0/' . ltrim($path, '/');
         }
         $url = $baseUrl . $path;
+        
+        // Add query parameters if they exist
+        if (!empty($params)) {
+            $url .= '?' . http_build_query($params);
+        }
+        
         error_log("Full API URL: " . $url);
         return $url;
     }
@@ -246,10 +252,14 @@ class TrendVisionOne extends phpef {
                 throw new Exception("Access Denied - Missing READ permissions");
             }
 
-            $baseUrl = $this->getTrendVisionOneUrl();
-            $fullUrl = $this->getApiEndpoint("endpointSecurity/endpoints");
-            
-            $result = $this->makeApiRequest("GET", "endpointSecurity/endpoints");
+            // Set query parameters for 1000 records
+            $params = [
+                'top' => 1000,
+                'skip' => 0
+            ];
+
+            $fullUrl = $this->getApiEndpoint("endpointSecurity/endpoints", $params);
+            $result = $this->makeApiRequest("GET", "endpointSecurity/endpoints", $params);
             
             if ($result === false) {
                 $this->api->setAPIResponse('Error', 'Failed to retrieve endpoints - API request failed');
