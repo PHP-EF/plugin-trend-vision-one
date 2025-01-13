@@ -154,7 +154,7 @@ class TrendVisionOne extends phpef {
         return [
             [
                 'title' => 'Overview',
-                'link' => '/plugin/TrendVisionOne',
+                'link' => '/plugin/TrendVisionOne/dashboard',
                 'icon' => 'fas fa-tachometer-alt'
             ],
             [
@@ -187,6 +187,7 @@ class TrendVisionOne extends phpef {
         switch ($path) {
             case '':
             case '/':
+            case '/dashboard':
                 include(__DIR__ . '/pages/Trend-Vision-One-Dashboard.php');
                 break;
             case '/client_workloads':
