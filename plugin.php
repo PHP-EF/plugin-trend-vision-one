@@ -170,9 +170,23 @@ class TrendVisionOne extends phpef {
         ];
     }
 
+    public function getJsPath()
+    {
+        return '/plugin/TrendVisionOne/js/main.js';
+    }
+
     public function handleRequest($request)
     {
-        // Check authentication first
+        $path = $request['path'] ?? '';
+
+        // Handle JavaScript file request
+        if ($path === '/js/main.js') {
+            header('Content-Type: application/javascript');
+            readfile(__DIR__ . '/main.js');
+            exit;
+        }
+        
+        // Check authentication for page requests
         if (!$this->isAuthenticated()) {
             header('Location: ' . $this->getLoginUrl());
             exit;
@@ -181,8 +195,6 @@ class TrendVisionOne extends phpef {
         // Make plugin instance available to included files
         global $plugin;
         $plugin = $this;
-
-        $path = $request['path'] ?? '';
         
         switch ($path) {
             case '':
