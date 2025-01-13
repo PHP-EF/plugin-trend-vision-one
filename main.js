@@ -115,8 +115,8 @@ function showEndpointDetails(endpointId) {
                     .text(data.agentUpdateStatus === 'onSchedule' ? 'Online' : 'Offline')
                     .removeClass()
                     .addClass(getEndpointStatusBadgeClass(data.agentUpdateStatus === 'onSchedule'));
-                $('#endpointGroup').text(data.endpointGroup || '-');
-                $('#protectionManager').text(data.protectionManager || '-');
+                $('#endpointGroup').text(data.endpointGroups?.[0] || '-');
+                $('#protectionManager').text(data.protectionManager?.protectionManager || '-');
                 
                 endpointModal.show();
             } else {
