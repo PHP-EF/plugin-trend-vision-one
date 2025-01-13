@@ -101,6 +101,11 @@ function updateEndpointsTable() {
                                 osName += ' ' + versionWithoutBuild;
                             }
                         }
+                    } else if (endpoint.osName) {
+                        osName = endpoint.osName;
+                    } else if (endpoint.type === 'desktop') {
+                        // If it's a desktop endpoint, default to Windows 10 if no other info available
+                        osName = 'Windows 10';
                     }
                     row.append(`<td>${osName}</td>`);
                     
