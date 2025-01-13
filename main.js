@@ -58,7 +58,7 @@ function updateEndpointsTable() {
                     console.log(`Processing endpoint ${index}:`, endpoint);
 
                     row.append(`<td>${endpoint.displayName || '-'}</td>`);
-                    row.append(`<td>${endpoint.os?.name || '-'}</td>`);
+                    row.append(`<td>${endpoint.os?.name || endpoint.osName || '-'}</td>`);
                     row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
                     row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
                     
@@ -114,7 +114,7 @@ function showEndpointDetails(endpointId) {
                 const data = response.data;
                 $('#agentGuid').text(data.agentGuid || '-');
                 $('#displayName').text(data.displayName || '-');
-                $('#osName').text(data.os?.name || '-');
+                $('#osName').text(data.os?.name || data.osName || '-');
                 $('#osVersion').text(data.os?.version || '-');
                 $('#ipAddresses').text(data.lastUsedIp || '-');
                 $('#lastConnectedDateTime').text(formatDateTime(data.eppAgent?.lastConnectedDateTime) || '-');
