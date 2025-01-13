@@ -258,8 +258,8 @@ class TrendVisionOne extends phpef {
                 'skip' => 0
             ];
 
-            $fullUrl = $this->getApiEndpoint("endpointSecurity/endpoints", $params);
-            $result = $this->makeApiRequest("GET", "endpointSecurity/endpoints", $params);
+            // Make API request with parameters
+            $result = $this->makeApiRequest("GET", "endpointSecurity/endpoints?" . http_build_query($params));
             
             if ($result === false) {
                 $this->api->setAPIResponse('Error', 'Failed to retrieve endpoints - API request failed');
