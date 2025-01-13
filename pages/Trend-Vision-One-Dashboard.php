@@ -15,6 +15,7 @@
                                     <th>IP Address</th>
                                     <th>Last Connected</th>
                                     <th>Status</th>
+                                    <th>Component Version</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -125,6 +126,38 @@
                         <p class="form-control-plaintext"><span id="edrAdvancedRiskTelemetry" class="badge">-</span></p>
                     </div>
                 </div>
+
+                <h6 class="mt-4 mb-3">EPP Information</h6>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Policy Name:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="eppPolicyName">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Status:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext"><span id="eppStatus" class="badge">-</span></p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Last Connected:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="eppLastConnected">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Version:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="eppVersion">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Component Version:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext"><span id="eppComponentVersion" class="badge">-</span></p>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -150,6 +183,7 @@ $(document).ready(function() {
                         item.lastConnectedDateTime,
                         '<span class="badge ' + (item.status === 'on' ? 'bg-success' : 'bg-danger') + '">' + 
                             (item.status === 'on' ? 'Online' : 'Offline') + '</span>',
+                        item.componentVersion,
                         '<button class="btn btn-sm btn-info view-details" data-id="' + item.agentGuid + 
                             '"><i class="fas fa-info-circle"></i> Details</button>'
                     ];
@@ -162,6 +196,7 @@ $(document).ready(function() {
             { "title": "IP Address" },
             { "title": "Last Connected" },
             { "title": "Status" },
+            { "title": "Component Version" },
             { "title": "Actions" }
         ]
     });
@@ -201,6 +236,17 @@ $(document).ready(function() {
                         .text(data.edrAdvancedRiskTelemetry || '')
                         .removeClass('bg-success bg-danger bg-warning')
                         .addClass(data.edrAdvancedRiskTelemetry === 'Enabled' ? 'bg-success' : data.edrAdvancedRiskTelemetry === 'Disabled' ? 'bg-danger' : 'bg-warning');
+                    $('#eppPolicyName').text(data.eppPolicyName || '');
+                    $('#eppStatus')
+                        .text(data.eppStatus || '')
+                        .removeClass('bg-success bg-danger bg-warning')
+                        .addClass(data.eppStatus === 'Healthy' ? 'bg-success' : data.eppStatus === 'Unhealthy' ? 'bg-danger' : 'bg-warning');
+                    $('#eppLastConnected').text(data.eppLastConnected || '');
+                    $('#eppVersion').text(data.eppVersion || '');
+                    $('#eppComponentVersion')
+                        .text(data.eppComponentVersion || '')
+                        .removeClass('bg-success bg-danger bg-warning')
+                        .addClass(data.eppComponentVersion === 'Up-to-date' ? 'bg-success' : data.eppComponentVersion === 'Outdated' ? 'bg-danger' : 'bg-warning');
                     $('#endpointDetailsModal').modal('show');
                 } else {
                     toastr.error('Failed to load endpoint details: ' + response.message);

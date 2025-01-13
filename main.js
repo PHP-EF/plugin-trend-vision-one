@@ -45,7 +45,7 @@ function updateEndpointsTable() {
                 if (endpoints.length === 0) {
                     tableBody.html(`
                         <tr>
-                            <td colspan="6" class="text-center">
+                            <td colspan="7" class="text-center">
                                 No endpoints available
                             </td>
                         </tr>
@@ -67,6 +67,11 @@ function updateEndpointsTable() {
                     const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
                     row.append(`<td>${statusBadge}</td>`);
                     
+                    // Component Version column with badge
+                    const componentVersion = endpoint.eppAgent?.componentVersion || '-';
+                    const componentVersionClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
+                    row.append(`<td><span class="badge ${componentVersionClass}">${componentVersion}</span></td>`);
+                    
                     // Actions column with details button
                     const detailsButton = `
                         <button class="btn btn-sm btn-info" 
@@ -81,7 +86,7 @@ function updateEndpointsTable() {
                 console.error('Invalid response structure:', response);
                 $('#trendEndpointsTable tbody').html(`
                     <tr>
-                        <td colspan="6" class="text-center">
+                        <td colspan="7" class="text-center">
                             ${response.message || 'Error loading endpoints'}
                         </td>
                     </tr>
@@ -95,7 +100,7 @@ function updateEndpointsTable() {
             
             $('#trendEndpointsTable tbody').html(`
                 <tr>
-                    <td colspan="6" class="text-center text-danger">
+                    <td colspan="7" class="text-center text-danger">
                         <i class="fas fa-exclamation-triangle"></i> Error loading endpoints data
                     </td>
                 </tr>
@@ -149,6 +154,25 @@ function showEndpointDetails(endpointId) {
                     .text(edrData.advancedRiskTelemetryStatus || '-')
                     .removeClass('bg-success bg-danger')
                     .addClass(edrData.advancedRiskTelemetryStatus?.toLowerCase() === 'enabled' ? 'bg-success' : 'bg-danger');
+                
+                // EPP Information
+                const eppData = data.eppAgent || {};
+                $('#eppPolicyName').text(eppData.policyName || '-');
+                
+                // EPP Status badge
+                $('#eppStatus')
+                    .text(eppData.status || '-')
+                    .removeClass('bg-success bg-danger')
+                    .addClass(eppData.status?.toLowerCase() === 'on' ? 'bg-success' : 'bg-danger');
+                
+                $('#eppLastConnected').text(formatDateTime(eppData.lastConnectedDateTime) || '-');
+                $('#eppVersion').text(eppData.version || '-');
+                
+                // Component Version badge
+                $('#eppComponentVersion')
+                    .text(eppData.componentVersion || '-')
+                    .removeClass('bg-success bg-danger')
+                    .addClass(eppData.componentVersion?.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success');
                 
                 endpointModal.show();
             } else {
