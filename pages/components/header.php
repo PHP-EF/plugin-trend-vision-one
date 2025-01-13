@@ -1,2 +1,2 @@
 <!-- Required JavaScript files -->
-<script src="/plugin/TrendVisionOne/main.js"></script>
+<script src="<?php global $plugin; echo $plugin->getJsPath(); ?>"></script>

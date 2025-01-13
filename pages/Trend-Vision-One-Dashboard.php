@@ -3,7 +3,7 @@
 global $plugin;
 
 // Include required scripts
-include(__DIR__ . '/components/header.php');
+require_once(__DIR__ . '/components/header.php');
 ?>
 
 <div class="container-fluid mt-4">
@@ -15,7 +15,7 @@ include(__DIR__ . '/components/header.php');
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Endpoints</h5>
-                    <h2 class="mb-0" id="totalEndpoints">-</h2>
+                    <h2 id="totalEndpoints">-</h2>
                 </div>
             </div>
         </div>
@@ -23,7 +23,7 @@ include(__DIR__ . '/components/header.php');
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Client Workloads</h5>
-                    <h2 class="mb-0" id="clientWorkloads">-</h2>
+                    <h2 id="clientWorkloads">-</h2>
                 </div>
             </div>
         </div>
@@ -31,7 +31,7 @@ include(__DIR__ . '/components/header.php');
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <h5 class="card-title">Server Workloads</h5>
-                    <h2 class="mb-0" id="serverWorkloads">-</h2>
+                    <h2 id="serverWorkloads">-</h2>
                 </div>
             </div>
         </div>
@@ -39,14 +39,17 @@ include(__DIR__ . '/components/header.php');
             <div class="card bg-warning text-white">
                 <div class="card-body">
                     <h5 class="card-title">Outdated Components</h5>
-                    <h2 class="mb-0" id="outdatedComponents">-</h2>
+                    <h2 id="outdatedComponents">-</h2>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- All Endpoints Table -->
+    <!-- Endpoints Table -->
     <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">All Endpoints</h5>
+        </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table id="trendEndpointsTable" class="table table-striped table-hover">
@@ -72,8 +75,8 @@ include(__DIR__ . '/components/header.php');
     </div>
 </div>
 
-<!-- Details Modal -->
-<?php include(__DIR__ . '/components/endpoint_details_modal.php'); ?>
+<!-- Include Modal -->
+<?php require_once(__DIR__ . '/components/endpoint_details_modal.php'); ?>
 
 <script>
 $(document).ready(function() {
