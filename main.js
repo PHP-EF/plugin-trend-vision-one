@@ -253,11 +253,12 @@ $(document).ready(function() {
         e.stopPropagation();
         const container = $('#endpointGroupFilterContainer');
         const icon = $(this);
-        const iconPos = icon.offset();
+        const th = icon.closest('th');
+        const thPos = th.offset();
         
         container.css({
-            top: iconPos.top + icon.height() + 5,
-            left: iconPos.left - container.width() + icon.width()
+            top: thPos.top + th.outerHeight(),
+            left: thPos.left
         }).toggle();
     });
 
@@ -273,26 +274,8 @@ $(document).ready(function() {
         updateEndpointsTable();
         // Add active class to icon when filter is applied
         $('#endpointGroupFilterIcon').toggleClass('text-primary', $(this).val() !== '');
+        $('#endpointGroupFilterContainer').hide();
     });
-
-    // Add filter dropdown to the table header
-    $('#trendEndpointsTable thead tr').prepend(`
-        <tr>
-            <th colspan="8">
-                <div class="d-flex justify-content-end align-items-center mb-2">
-                    <label for="endpointGroupFilter" class="me-2">Filter by Group:</label>
-                    <div id="endpointGroupFilterContainer" class="dropdown">
-                        <button id="endpointGroupFilterIcon" class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-filter"></i>
-                        </button>
-                        <select id="endpointGroupFilter" class="form-select form-select-sm dropdown-menu" style="width: auto;">
-                            <option value="">All Groups</option>
-                        </select>
-                    </div>
-                </div>
-            </th>
-        </tr>
-    `);
 
     // Initial load of endpoints data
     updateEndpointsTable();
@@ -327,6 +310,13 @@ $('<style>')
         }
         #endpointGroupFilterContainer {
             min-width: 200px;
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            padding: 0.5rem;
         }
     `)
     .appendTo('head');
