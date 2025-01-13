@@ -51,6 +51,7 @@ class TrendVisionOne extends phpef {
             $path = '/v3.0/' . ltrim($path, '/');
         }
         $url = $baseUrl . $path;
+        print_r($url);
         error_log("Full API URL: " . $url);
         return $url;
     }
