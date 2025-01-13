@@ -112,6 +112,7 @@ function showEndpointDetails(endpointId) {
         success: function(response) {
             if (response.result === 'Success' && response.data) {
                 const data = response.data;
+                // General Information
                 $('#agentGuid').text(data.agentGuid || '-');
                 $('#displayName').text(data.displayName || '-');
                 $('#osName').text(data.os?.name || data.osName || '-');
@@ -124,6 +125,17 @@ function showEndpointDetails(endpointId) {
                     .addClass(getEndpointStatusBadgeClass(data.agentUpdateStatus === 'onSchedule'));
                 $('#endpointGroup').text(data.eppAgent?.endpointGroup || '-');
                 $('#protectionManager').text(data.eppAgent?.protectionManager || '-');
+
+                // EDR Information
+                if (data.edrSensor) {
+                    $('#edrConnectivity').text(data.edrSensor.connectivity || '-');
+                    $('#edrLastConnected').text(formatDateTime(data.edrSensor.lastConnectedDateTime) || '-');
+                    $('#edrVersion').text(data.edrSensor.version || '-');
+                    $('#edrStatus').text(data.edrSensor.status || '-');
+                    $('#edrAdvancedRiskTelemetry').text(data.edrSensor.advancedRiskTelemetryStatus || '-');
+                } else {
+                    $('#edrConnectivity, #edrLastConnected, #edrVersion, #edrStatus, #edrAdvancedRiskTelemetry').text('-');
+                }
                 
                 endpointModal.show();
             } else {

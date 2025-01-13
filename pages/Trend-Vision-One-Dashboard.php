@@ -38,41 +38,92 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col-4"><strong>Agent GUID:</strong></div>
-                    <div class="col-8" id="agentGuid"></div>
+                <h6 class="mb-3">General Information</h6>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Agent GUID:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="agentGuid">-</p>
+                    </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-4"><strong>Display Name:</strong></div>
-                    <div class="col-8" id="displayName"></div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Display Name:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="displayName">-</p>
+                    </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-4"><strong>OS Name:</strong></div>
-                    <div class="col-8" id="osName"></div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">OS Name:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="osName">-</p>
+                    </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-4"><strong>OS Version:</strong></div>
-                    <div class="col-8" id="osVersion"></div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">OS Version:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="osVersion">-</p>
+                    </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-4"><strong>IP Addresses:</strong></div>
-                    <div class="col-8" id="ipAddresses"></div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">IP Addresses:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="ipAddresses">-</p>
+                    </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-4"><strong>Last Connected:</strong></div>
-                    <div class="col-8" id="lastConnectedDateTime"></div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Last Connected:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="lastConnectedDateTime">-</p>
+                    </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-4"><strong>Status:</strong></div>
-                    <div class="col-8"><span id="endpointStatus" class="badge"></span></div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Status:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext"><span id="endpointStatus" class="badge">-</span></p>
+                    </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-4"><strong>Endpoint Group:</strong></div>
-                    <div class="col-8" id="endpointGroup"></div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Endpoint Group:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="endpointGroup">-</p>
+                    </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-4"><strong>Protection Manager:</strong></div>
-                    <div class="col-8" id="protectionManager"></div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Protection Manager:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="protectionManager">-</p>
+                    </div>
+                </div>
+
+                <h6 class="mt-4 mb-3">EDR Information</h6>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Connectivity:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="edrConnectivity">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Last Connected:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="edrLastConnected">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Version:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="edrVersion">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Status:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="edrStatus">-</p>
+                    </div>
+                </div>
+                <div class="mb-2 row">
+                    <label class="col-sm-4 col-form-label">Advanced Risk Telemetry:</label>
+                    <div class="col-sm-8">
+                        <p class="form-control-plaintext" id="edrAdvancedRiskTelemetry">-</p>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -136,6 +187,11 @@ $(document).ready(function() {
                         .addClass(data.status === 'on' ? 'bg-success' : 'bg-danger');
                     $('#endpointGroup').text(data.endpointGroup || '');
                     $('#protectionManager').text(data.protectionManager || '');
+                    $('#edrConnectivity').text(data.edrConnectivity || '');
+                    $('#edrLastConnected').text(data.edrLastConnected || '');
+                    $('#edrVersion').text(data.edrVersion || '');
+                    $('#edrStatus').text(data.edrStatus || '');
+                    $('#edrAdvancedRiskTelemetry').text(data.edrAdvancedRiskTelemetry || '');
                     $('#endpointDetailsModal').modal('show');
                 } else {
                     toastr.error('Failed to load endpoint details: ' + response.message);
