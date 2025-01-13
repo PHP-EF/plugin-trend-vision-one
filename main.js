@@ -37,7 +37,7 @@ function updateEndpointSummary(endpoints) {
 // Function to update the Trend Vision One endpoints table
 function updateEndpointsTable() {
     $.ajax({
-        url: '/api/plugin/TrendVisionOne/getfulldesktops',
+        url: '/api/plugin/TrendVisionOne/getfulldesktops?top=1000',
         method: 'GET',
         dataType: 'json',
         success: function(response) {
