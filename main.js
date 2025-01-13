@@ -103,14 +103,14 @@ function showEndpointDetails(endpointId) {
         url: `/api/plugin/TrendVisionOne/getendpointdetails/${endpointId}`,
         method: 'GET',
         success: function(response) {
-            if (response.result === 'Success') {
+            if (response.result === 'Success' && response.data) {
                 const data = response.data;
                 $('#agentGuid').text(data.agentGuid || '-');
                 $('#displayName').text(data.displayName || '-');
-                $('#osName').text(data.osName || '-');
-                $('#osVersion').text(data.osVersion || '-');
-                $('#ipAddresses').text(data.ipAddresses ? data.ipAddresses.join(', ') : '-');
-                $('#lastConnectedDateTime').text(formatDateTime(data.lastConnectedDateTime));
+                $('#osName').text(data.os?.name || '-');
+                $('#osVersion').text(data.os?.version || '-');
+                $('#ipAddresses').text(data.lastUsedIp || '-');
+                $('#lastConnectedDateTime').text(formatDateTime(data.lastConnectedDateTime) || '-');
                 $('#endpointStatus')
                     .text(data.agentUpdateStatus === 'onSchedule' ? 'Online' : 'Offline')
                     .removeClass()
