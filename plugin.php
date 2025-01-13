@@ -19,7 +19,8 @@ $GLOBALS['plugins']['TrendVisionOne'] = [ // Plugin Name
 class TrendVisionOne extends phpef {
     public function __construct() {
         parent::__construct();
-    }
+        $this->pluginConfig = $this->config->get('Plugins','TrendVisionOne') ?? [];
+    }
 
         //Protected function to define the settings for this plugin
     public function _pluginGetSettings() {
@@ -46,13 +47,11 @@ class TrendVisionOne extends phpef {
         //Protected function to define the api and build the required api for the plugin
     private function getApiEndpoint($path) {
         $baseUrl = $this->getTrendVisionOneUrl();
-        print_r($baseUrl);
         // Ensure path starts with /v3.0
         if (strpos($path, '/v3.0/') !== 0) {
             $path = '/v3.0/' . ltrim($path, '/');
         }
         $url = $baseUrl . $path;
-        print_r($url);
         error_log("Full API URL: " . $url);
         return $url;
     }
