@@ -46,6 +46,7 @@ class TrendVisionOne extends phpef {
         //Protected function to define the api and build the required api for the plugin
     private function getApiEndpoint($path) {
         $baseUrl = $this->getTrendVisionOneUrl();
+        print_r($baseUrl);
         // Ensure path starts with /v3.0
         if (strpos($path, '/v3.0/') !== 0) {
             $path = '/v3.0/' . ltrim($path, '/');
