@@ -230,11 +230,34 @@ class TrendVisionOne extends phpef {
                 throw new Exception("Access Denied - Missing READ permissions");
             }
 
-            $sessions = $this->makeApiRequest("GET", "endpointSecurity/endpoints");
-            $this->api->setAPIResponse('Success', 'Sessions retrieved');
-            $this->api->setAPIResponseData($sessions['data']); // Just pass the data array directly
+            $result = $this->makeApiRequest("GET", "endpointSecurity/endpoints");
+            if (!$result) {
+                throw new Exception("Failed to retrieve endpoints");
+            }
+
+            error_log("Full API Response in GetFullDesktops: " . json_encode($result));
+            
+            // Check if we have the expected response structure
+            if (isset($result->items)) {
+                $responseData = [
+                    'totalCount' => $result->totalCount ?? 0,
+                    'count' => $result->count ?? 0,
+                    'items' => $result->items ?? []
+                ];
+                $this->api->setAPIResponse('Success', 'Retrieved ' . ($result->count ?? 0) . ' endpoints');
+                $this->api->setAPIResponseData($responseData);
+            } else {
+                $this->api->setAPIResponse('Success', 'No endpoints found');
+                $this->api->setAPIResponseData([
+                    'totalCount' => 0,
+                    'count' => 0,
+                    'items' => []
+                ]);
+            }
+            
             return true;
         } catch (Exception $e) {
+            error_log("Error in GetFullDesktops: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
