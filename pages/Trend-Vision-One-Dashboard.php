@@ -1,6 +1,9 @@
 <?php
 // Authentication is handled by the plugin
 global $plugin;
+
+// Include required scripts
+include(__DIR__ . '/components/header.php');
 ?>
 
 <div class="container-fluid mt-4">
