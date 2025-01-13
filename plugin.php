@@ -186,6 +186,9 @@ class TrendVisionOne extends phpef {
             exit;
         }
         
+        // Add main.js script to page
+        echo '<script src="' . $this->getJsPath() . '"></script>';
+        
         switch ($path) {
             case '':
             case '/':

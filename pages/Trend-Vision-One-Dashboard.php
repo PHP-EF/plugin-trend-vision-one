@@ -2,8 +2,7 @@
 // Authentication is handled by the plugin
 global $plugin;
 
-// Include required scripts
-require_once(__DIR__ . '/components/header.php');
+// Bootstrap and jQuery are included by the framework
 ?>
 
 <div class="container-fluid mt-4">
@@ -75,19 +74,78 @@ require_once(__DIR__ . '/components/header.php');
     </div>
 </div>
 
-<!-- Include Modal -->
-<?php require_once(__DIR__ . '/components/endpoint_details_modal.php'); ?>
+<!-- Endpoint Details Modal -->
+<div class="modal fade" id="endpointDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Endpoint Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- General Information -->
+                <h6 class="border-bottom pb-2">General Information</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Agent GUID:</strong> <span id="agentGuid">-</span></p>
+                        <p><strong>Display Name:</strong> <span id="displayName">-</span></p>
+                        <p><strong>OS Name:</strong> <span id="osName">-</span></p>
+                        <p><strong>OS Version:</strong> <span id="osVersion">-</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>IP Address:</strong> <span id="ipAddresses">-</span></p>
+                        <p><strong>Last Connected:</strong> <span id="lastConnectedDateTime">-</span></p>
+                        <p><strong>Status:</strong> <span id="endpointStatus" class="badge">-</span></p>
+                        <p><strong>Endpoint Group:</strong> <span id="endpointGroup">-</span></p>
+                        <p><strong>Protection Manager:</strong> <span id="protectionManager">-</span></p>
+                    </div>
+                </div>
+
+                <!-- EPP Information -->
+                <h6 class="border-bottom pb-2">EPP Information</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Policy Name:</strong> <span id="eppPolicyName">-</span></p>
+                        <p><strong>Status:</strong> <span id="eppStatus" class="badge">-</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Last Connected:</strong> <span id="eppLastConnected">-</span></p>
+                        <p><strong>Version:</strong> <span id="eppVersion">-</span></p>
+                        <p><strong>Component Version:</strong> <span id="eppComponentVersion" class="badge">-</span></p>
+                    </div>
+                </div>
+
+                <!-- EDR Information -->
+                <h6 class="border-bottom pb-2">EDR Information</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Connectivity:</strong> <span id="edrConnectivity" class="badge">-</span></p>
+                        <p><strong>Last Connected:</strong> <span id="edrLastConnected">-</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Version:</strong> <span id="edrVersion">-</span></p>
+                        <p><strong>Status:</strong> <span id="edrStatus" class="badge">-</span></p>
+                        <p><strong>Risk Telemetry:</strong> <span id="edrRiskTelemetry" class="badge">-</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 $(document).ready(function() {
     // Initial load
-    initializeEndpointsTable('all');
+    initializeEndpointsTable();
     
     // Refresh data every 30 seconds
-    setInterval(() => initializeEndpointsTable('all'), 30000);
+    setInterval(() => initializeEndpointsTable(), 30000);
 });
 
-function initializeEndpointsTable(workloadType) {
+function initializeEndpointsTable() {
     // Initialize DataTable
     var table = $('#trendEndpointsTable').DataTable({
         "processing": true,
