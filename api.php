@@ -18,7 +18,7 @@ $app->get('/plugin/TrendVisionOne/settings', function ($request, $response, $arg
 // Test TrendVisionOne Authentication
 $app->get('/plugin/TrendVisionOne/test-url', function ($request, $response, $args) {
     $TrendVisionOne = new TrendVisionOne();
-    $TrendVisionOne->getApiEndpoint();
+    $TrendVisionOne->getFullApiUrl();
     $response->getBody()->write(jsonE($GLOBALS['api']));
     return $response
         ->withHeader('Content-Type', 'application/json;charset=UTF-8')

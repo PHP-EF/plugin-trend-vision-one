@@ -226,6 +226,19 @@ class TrendVisionOne extends phpef {
 //         }
 //     }
 
+    public function getFullApiUrl() {
+        try {
+            $url = $this->getApiEndpoint("endpointSecurity/endpoints");
+            print_r($url);
+            $this->api->setAPIResponse('Success', 'API URL Retrieved');
+            $this->api->setAPIResponseData(['url' => $url]);
+            return true;
+        } catch (Exception $e) {
+            $this->api->setAPIResponse('Error', $e->getMessage());
+            return false;
+        }
+    }
+
     public function GetFullDesktops() {
         try {
             if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
