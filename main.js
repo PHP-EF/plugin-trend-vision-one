@@ -24,36 +24,86 @@ function updateEndpointSummary(endpoints) {
     $('#offlineEndpoints').text(offlineEndpoints);
 }
 
-// Function to update the Trend Vision One endpoints table
-function updateEndpointsTable() {
+// Function to get appropriate badge class for endpoint status
+function getEndpointStatusBadgeClass(isOnline) {
+    return isOnline ? 'badge bg-success text-white' : 'badge bg-danger text-white';
+}
+
+// Function to check if an OS is a client workload
+function isClientWorkload(osName) {
+    const clientOSPatterns = [
+        /windows 7/i,
+        /windows 10/i,
+        /windows 11/i,
+        /macos/i
+    ];
+    return clientOSPatterns.some(pattern => pattern.test(osName));
+}
+
+// Function to filter endpoints by workload type
+function filterEndpoints(endpoints, workloadType) {
+    if (workloadType === 'all') {
+        return endpoints;
+    }
+    
+    return endpoints.filter(endpoint => {
+        const osName = endpoint.os?.name || endpoint.osName || '';
+        const isClient = isClientWorkload(osName);
+        return workloadType === 'client' ? isClient : !isClient;
+    });
+}
+
+// Function to update summary boxes
+function updateSummaryBoxes(endpoints) {
+    const clientWorkloads = endpoints.filter(endpoint => {
+        const osName = endpoint.os?.name || endpoint.osName || '';
+        return isClientWorkload(osName);
+    });
+    
+    const serverWorkloads = endpoints.filter(endpoint => {
+        const osName = endpoint.os?.name || endpoint.osName || '';
+        return !isClientWorkload(osName);
+    });
+    
+    const outdatedComponents = endpoints.filter(endpoint => {
+        return endpoint.eppAgent?.componentVersion?.toLowerCase() === 'outdatedversion';
+    });
+
+    $('#totalEndpoints').text(endpoints.length);
+    $('#clientWorkloads').text(clientWorkloads.length);
+    $('#serverWorkloads').text(serverWorkloads.length);
+    $('#outdatedComponents').text(outdatedComponents.length);
+}
+
+// Function to initialize the endpoints table
+function initializeEndpointsTable(workloadType) {
+    const tableBody = $('#trendEndpointsTable tbody');
+    
     $.ajax({
         url: '/api/plugin/TrendVisionOne/getfulldesktops',
         method: 'GET',
-        dataType: 'json',
         success: function(response) {
-            console.log('API Response:', response);
-            
-            if (response && response.result === 'Success' && response.data && response.data.items && Array.isArray(response.data.items.items)) {
-                const endpoints = response.data.items.items;
+            if (response.result === 'Success' && Array.isArray(response.data)) {
+                // Update summary boxes if on overview page
+                if (workloadType === 'all') {
+                    updateSummaryBoxes(response.data);
+                }
                 
-                // Update summary boxes
-                updateEndpointSummary(endpoints);
+                const filteredEndpoints = filterEndpoints(response.data, workloadType);
                 
-                const tableBody = $('#trendEndpointsTable tbody');
-                tableBody.empty();
-
-                if (endpoints.length === 0) {
+                if (filteredEndpoints.length === 0) {
                     tableBody.html(`
                         <tr>
                             <td colspan="7" class="text-center">
-                                No endpoints available
+                                No ${workloadType} workloads available
                             </td>
                         </tr>
                     `);
                     return;
                 }
 
-                endpoints.forEach((endpoint, index) => {
+                tableBody.empty();
+                filteredEndpoints.forEach((endpoint, index) => {
                     const row = $('<tr>');
                     console.log(`Processing endpoint ${index}:`, endpoint);
 
@@ -187,11 +237,6 @@ function showEndpointDetails(endpointId) {
     });
 }
 
-// Function to get appropriate badge class for endpoint status
-function getEndpointStatusBadgeClass(isOnline) {
-    return isOnline ? 'badge bg-success text-white' : 'badge bg-danger text-white';
-}
-
 // Initialize Bootstrap modal for endpoints
 let endpointModal;
 $(document).ready(function() {
@@ -216,8 +261,8 @@ $('<style>')
 
 // Initial load of endpoints data
 $(document).ready(function() {
-    updateEndpointsTable();
+    initializeEndpointsTable('client');
     
     // Refresh data every 30 seconds
-    setInterval(updateEndpointsTable, 30000);
+    setInterval(() => initializeEndpointsTable('client'), 30000);
 });

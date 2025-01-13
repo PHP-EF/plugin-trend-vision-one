@@ -149,89 +149,26 @@ class TrendVisionOne extends phpef {
 
         //// Everything after this line (188) is features and is permitted to be edited to build out the plugin features
 
-//     public function getJobStatus() {
-//         try {
-//             if (!$this->auth->checkAccess($this->config->get("Plugins", "VeeamPlugin")['ACL-READ'] ?? "ACL-READ")) {
-//                 throw new Exception("Access Denied - Missing READ permissions");
-//             }
-
-//             // Get all jobs sessions
-//             $states = $this->makeApiRequest("GET", "v1/jobs/states");
-            
-//             // For debugging
-//             echo "States Data Response:\n";
-//             print_r($states);
-            
-//             if (!$states) {
-//                 $this->api->setAPIResponse('Error', 'Failed to retrieve job states');
-//                 return false;
-//             }
-
-//             $jobStates = [];
-//             if (isset($states['data'])) {
-//                 $jobStates = $states['data'];
-//             }
-
-//             $this->api->setAPIResponse('Success', 'Retrieved ' . count($jobStates) . ' job states');
-//             $this->api->setAPIResponseData($jobStates);
-//             return true;
-//         } catch (Exception $e) {
-//             $this->api->setAPIResponse('Error', $e->getMessage());
-//             return false;
-//         }
-//     }
-
-//     public function getBackupJobs() {
-//         try {
-//             if (!$this->auth->checkAccess($this->config->get("Plugins", "VeeamPlugin")['ACL-READ'] ?? "ACL-READ")) {
-//                 throw new Exception("Access Denied - Missing READ permissions");
-//             }
-
-//             $jobsData = $this->makeApiRequest("GET","v1/jobs");
-//             if (!$jobsData) {
-//                 return false;
-//             }
-            
-//             echo "Jobs Data Response:\n";
-//             print_r($jobsData);
-            
-//             $jobs = [];
-//             if (isset($jobsData->data)) {
-//                 $jobs = $jobsData->data;
-//                 echo "\nParsed Jobs:\n";
-//                 print_r($jobs);
-//             } 
-            
-//             // $formattedJobs = [];
-//             // foreach ($jobs as $job) {
-//             //     if (!is_array($job)) continue;
-                
-//             //     $formattedJob = [
-//             //         'id' => $job->id ?? $job->Id ?? '',
-//             //         'name' => $job->name ?? $job->Name ?? '',
-//             //         'description' => $job->description ?? $job->Description ?? '',
-//             //         'type' => $job->type ?? $job->Type ?? '',
-//             //         'status' => $job->status ?? $job->Status ?? '',
-//             //         'lastRun' => $job->lastRun ?? $job->LastRun ?? '',
-//             //         'nextRun' => $job->nextRun ?? $job->NextRun ?? '',
-//             //         'target' => $job->target ?? $job->Target ?? '',
-//             //         'repository' => $job->repository ?? $job->Repository ?? '',
-//             //         'enabled' => $job->enabled ?? $job->Enabled ?? false
-//             //     ];
-                
-//             //     $formattedJobs[] = $formattedJob;
-//             // }
-            
-//             $this->api->setAPIResponse('Success', 'Retrieved ' . count($jobs) . ' backup jobs');
-//             $this->api->setAPIResponseData($jobs); //$formattedJobs
-//             return true;
-            
-//         } catch (Exception $e) {
-//             error_log("Error getting backup jobs: " . $e->getMessage());
-//             $this->api->setAPIResponse('Error', $e->getMessage());
-//             return false;
-//         }
-//     }
+    public function getMenuItems()
+    {
+        return [
+            [
+                'title' => 'Overview',
+                'link' => '/plugin/TrendVisionOne/dashboard',
+                'icon' => 'fas fa-tachometer-alt'
+            ],
+            [
+                'title' => 'Client Workloads',
+                'link' => '/plugin/TrendVisionOne/client_workloads',
+                'icon' => 'fas fa-laptop'
+            ],
+            [
+                'title' => 'Server Workloads',
+                'link' => '/plugin/TrendVisionOne/server_workloads',
+                'icon' => 'fas fa-server'
+            ]
+        ];
+    }
 
     public function getFullApiUrl() {
         try {
