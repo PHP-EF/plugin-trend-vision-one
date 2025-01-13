@@ -1,30 +1,65 @@
-<div class="container">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Trend Vision One Endpoints</h3>
-                </div>
+<div class="container-fluid">
+    <h1 class="mb-4">Trend Vision One Overview</h1>
+    
+    <!-- Summary Boxes -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table id="trendEndpointsTable" class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Endpoint Name</th>
-                                    <th>OS Name</th>
-                                    <th>IP Address</th>
-                                    <th>Last Connected</th>
-                                    <th>Status</th>
-                                    <th>Component Version</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Data will be populated by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
+                    <h5 class="card-title">Total Endpoints</h5>
+                    <h2 id="totalEndpoints">-</h2>
                 </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Client Workloads</h5>
+                    <h2 id="clientWorkloads">-</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Server Workloads</h5>
+                    <h2 id="serverWorkloads">-</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Outdated Components</h5>
+                    <h2 id="outdatedComponents">-</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Endpoints Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Trend Vision One Endpoints</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="trendEndpointsTable" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Endpoint Name</th>
+                            <th>OS Name</th>
+                            <th>IP Address</th>
+                            <th>Last Connected</th>
+                            <th>Status</th>
+                            <th>Component Version</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
