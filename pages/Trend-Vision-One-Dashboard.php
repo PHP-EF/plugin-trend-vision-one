@@ -63,6 +63,7 @@
                             <th>Endpoint Name</th>
                             <th>OS Name</th>
                             <th>IP Address</th>
+                            <th>Endpoint Group</th>
                             <th>Last Connected</th>
                             <th>Status</th>
                             <th>Component Version</th>
@@ -250,6 +251,7 @@ $(document).ready(function() {
                         item.displayName,
                         item.osName,
                         item.ipAddresses ? item.ipAddresses.join(', ') : '',
+                        item.endpointGroup,
                         item.lastConnectedDateTime,
                         '<span class="badge ' + (item.status === 'on' ? 'bg-success' : 'bg-danger') + '">' + 
                             (item.status === 'on' ? 'Online' : 'Offline') + '</span>',
@@ -264,6 +266,7 @@ $(document).ready(function() {
             { "title": "Endpoint Name" },
             { "title": "OS Name" },
             { "title": "IP Address" },
+            { "title": "Endpoint Group" },
             { "title": "Last Connected" },
             { "title": "Status" },
             { "title": "Component Version" },
