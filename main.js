@@ -8,7 +8,7 @@ function formatDateTime(dateString) {
 // Function to update endpoint summary boxes
 function updateEndpointSummary(endpoints) {
     const totalEndpoints = endpoints.length;
-    const onlineEndpoints = endpoints.filter(endpoint => endpoint.isolationStatus !== 'off').length;
+    const onlineEndpoints = endpoints.filter(endpoint => endpoint.agentUpdateStatus === 'onSchedule').length;
     const offlineEndpoints = totalEndpoints - onlineEndpoints;
 
     $('#totalEndpoints').text(totalEndpoints);
@@ -56,7 +56,7 @@ function updateEndpointsTable() {
                     row.append(`<td>${formatDateTime(endpoint.lastConnectedDateTime)}</td>`);
                     
                     // Status column with badge
-                    const isOnline = endpoint.isolationStatus !== 'off';
+                    const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
                     const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
                     row.append(`<td>${statusBadge}</td>`);
                     
@@ -112,9 +112,9 @@ function showEndpointDetails(endpointId) {
                 $('#ipAddresses').text(data.ipAddresses ? data.ipAddresses.join(', ') : '-');
                 $('#lastConnectedDateTime').text(formatDateTime(data.lastConnectedDateTime));
                 $('#endpointStatus')
-                    .text(data.isolationStatus !== 'off' ? 'Online' : 'Offline')
+                    .text(data.agentUpdateStatus === 'onSchedule' ? 'Online' : 'Offline')
                     .removeClass()
-                    .addClass(getEndpointStatusBadgeClass(data.isolationStatus !== 'off'));
+                    .addClass(getEndpointStatusBadgeClass(data.agentUpdateStatus === 'onSchedule'));
                 $('#endpointGroup').text(data.endpointGroup || '-');
                 $('#protectionManager').text(data.protectionManager || '-');
                 
