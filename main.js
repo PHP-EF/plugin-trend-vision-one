@@ -2,7 +2,15 @@
 function formatDateTime(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleString();
+    return date.toLocaleString('en-GB', { 
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    }).replace(',', '');
 }
 
 // Function to update endpoint summary boxes
@@ -50,10 +58,10 @@ function updateEndpointsTable() {
                     console.log(`Processing endpoint ${index}:`, endpoint);
 
                     row.append(`<td>${endpoint.displayName || '-'}</td>`);
-                    row.append(`<td>${endpoint.osName || '-'}</td>`);
-                    row.append(`<td>${endpoint.osVersion || '-'}</td>`);
-                    row.append(`<td>${endpoint.ipAddresses ? endpoint.ipAddresses.join(', ') : endpoint.lastUsedIp || '-'}</td>`);
-                    row.append(`<td>${formatDateTime(endpoint.lastConnectedDateTime)}</td>`);
+                    row.append(`<td>${endpoint.os?.name || '-'}</td>`);
+                    row.append(`<td>${endpoint.os?.version || '-'}</td>`);
+                    row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
+                    row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
                     
                     // Status column with badge
                     const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
