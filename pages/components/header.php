@@ -1,10 +1,10 @@
 <?php
 global $plugin;
 if (isset($plugin)) {
-    echo '<!-- Required JavaScript files -->';
-    echo '<script src="' . $plugin->getJsPath() . '"></script>';
+    $jsPath = $plugin->getJsPath();
 } else {
-    echo '<!-- Required JavaScript files -->';
-    echo '<script src="/plugin/TrendVisionOne/main.js"></script>';
+    $jsPath = '/api/page/plugin/TrendVisionOne/main.js';
 }
 ?>
+<!-- Required JavaScript files -->
+<script src="<?php echo $jsPath; ?>"></script>

@@ -172,7 +172,7 @@ class TrendVisionOne extends phpef {
 
     public function getJsPath()
     {
-        return '/plugin/TrendVisionOne/main.js';
+        return '/api/page/plugin/TrendVisionOne/main.js';
     }
 
     public function handleRequest($request)
@@ -184,7 +184,7 @@ class TrendVisionOne extends phpef {
         $plugin = $this;
 
         // Handle main.js request
-        if ($path === '/main.js' || $path === 'main.js') {
+        if (preg_match('#/main\.js$#', $path)) {
             header('Content-Type: application/javascript');
             readfile(__DIR__ . '/main.js');
             exit;
