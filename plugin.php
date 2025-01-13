@@ -172,6 +172,10 @@ class TrendVisionOne extends phpef {
 
     public function handleRequest($request)
     {
+        if (!defined('BASEPATH')) {
+            define('BASEPATH', '/var/www/html');
+        }
+
         $path = $request['path'] ?? '';
         
         switch ($path) {
