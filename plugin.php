@@ -17,6 +17,8 @@ $GLOBALS['plugins']['TrendVisionOne'] = [ // Plugin Name
 ];
 
 class TrendVisionOne extends phpef {
+    private $pluginConfig;
+
     public function __construct() {
         parent::__construct();
         $this->pluginConfig = $this->config->get('Plugins','TrendVisionOne') ?? [];
