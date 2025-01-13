@@ -248,33 +248,111 @@ $(document).ready(function() {
 
 // Initial setup
 $(document).ready(function() {
-    // Handle filter icon click
-    $('#endpointGroupFilterIcon').click(function(e) {
-        e.stopPropagation();
-        const container = $('#endpointGroupFilterContainer');
-        container.toggle();
-        
-        if (container.is(':visible')) {
-            $('#endpointGroupFilter').focus();
-        }
+    // Setup filter handlers for all filter columns
+    const filterColumns = [
+        { id: 'osName', title: 'OS' },
+        { id: 'endpointGroup', title: 'Groups' },
+        { id: 'status', title: 'Status' },
+        { id: 'version', title: 'Versions' }
+    ];
+
+    filterColumns.forEach(column => {
+        // Handle filter icon click
+        $(`#${column.id}FilterIcon`).click(function(e) {
+            e.stopPropagation();
+            const container = $(`#${column.id}FilterContainer`);
+            $('.filter-dropdown').not(container).hide(); // Hide other dropdowns
+            container.toggle();
+            
+            if (container.is(':visible')) {
+                $(`#${column.id}Filter`).focus();
+            }
+        });
+
+        // Add filter change handler
+        $(`#${column.id}Filter`).on('change', function() {
+            const selectedValue = $(this).val();
+            updateEndpointsTable();
+            // Add active class to icon when filter is applied
+            $(`#${column.id}FilterIcon`).toggleClass('text-primary', selectedValue !== '');
+            $(`#${column.id}FilterContainer`).hide();
+        });
     });
 
     // Close filter dropdown when clicking outside
     $(document).click(function(e) {
-        if (!$(e.target).closest('#endpointGroupFilterContainer').length && 
-            !$(e.target).closest('#endpointGroupFilterIcon').length) {
-            $('#endpointGroupFilterContainer').hide();
+        if (!$(e.target).closest('.filter-dropdown').length && 
+            !$(e.target).closest('[id$="FilterIcon"]').length) {
+            $('.filter-dropdown').hide();
         }
     });
 
-    // Add filter change handler
-    $('#endpointGroupFilter').on('change', function() {
-        const selectedValue = $(this).val();
-        updateEndpointsTable();
-        // Add active class to icon when filter is applied
-        $('#endpointGroupFilterIcon').toggleClass('text-primary', selectedValue !== '');
-        $('#endpointGroupFilterContainer').hide();
-    });
+    // Function to populate filter dropdowns
+    function populateFilters(data) {
+        const filters = {
+            osName: new Set(),
+            endpointGroup: new Set(),
+            status: new Set(),
+            version: new Set()
+        };
+
+        // Collect unique values
+        data.forEach(item => {
+            filters.osName.add(item.osName);
+            filters.endpointGroup.add(item.endpointGroup);
+            filters.status.add(item.status);
+            filters.version.add(item.componentVersion);
+        });
+
+        // Update each filter dropdown
+        Object.keys(filters).forEach(key => {
+            const select = $(`#${key}Filter`);
+            const currentValue = select.val(); // Store current selection
+            select.find('option:not(:first)').remove(); // Clear existing options except first
+
+            // Add new options
+            [...filters[key]].sort().forEach(value => {
+                select.append($('<option>', {
+                    value: value,
+                    text: value
+                }));
+            });
+
+            // Restore selection if it still exists in new options
+            if (currentValue && [...filters[key]].includes(currentValue)) {
+                select.val(currentValue);
+            }
+        });
+    }
+
+    // Update the updateEndpointsTable function to handle all filters
+    function updateEndpointsTable() {
+        $.ajax({
+            url: '/api/plugin/TrendVisionOne/getfulldesktops?top=1000',
+            method: 'GET',
+            success: function(data) {
+                populateFilters(data);
+                
+                // Apply all filters
+                const filters = {
+                    osName: $('#osNameFilter').val(),
+                    endpointGroup: $('#endpointGroupFilter').val(),
+                    status: $('#statusFilter').val(),
+                    version: $('#versionFilter').val()
+                };
+
+                const filteredData = data.filter(item => {
+                    return (!filters.osName || item.osName === filters.osName) &&
+                           (!filters.endpointGroup || item.endpointGroup === filters.endpointGroup) &&
+                           (!filters.status || item.status === filters.status) &&
+                           (!filters.version || item.componentVersion === filters.version);
+                });
+
+                // Update table with filtered data
+                updateTableContent(filteredData);
+            }
+        });
+    }
 
     // Initial load of endpoints data
     updateEndpointsTable();
@@ -299,6 +377,7 @@ $('<style>')
         .table th {
             padding: 0.75rem;
             vertical-align: middle;
+            white-space: nowrap;
         }
         .filter-dropdown {
             position: absolute;
@@ -313,19 +392,67 @@ $('<style>')
             min-width: 200px;
             margin-top: 0.25rem;
         }
-        #endpointGroupFilter {
+        .form-select {
             font-size: 0.875rem;
             padding: 0.25rem;
             width: 100%;
         }
-        #endpointGroupFilterIcon {
+        [id$="FilterIcon"] {
             transition: color 0.2s;
         }
-        #endpointGroupFilterIcon:hover {
+        [id$="FilterIcon"]:hover {
             color: #0d6efd !important;
         }
-        #endpointGroupFilterIcon.text-primary {
+        [id$="FilterIcon"].text-primary {
             color: #0d6efd !important;
         }
     `)
     .appendTo('head');
+
+// Function to update table content
+function updateTableContent(data) {
+    const tableBody = $('#trendEndpointsTable tbody');
+    tableBody.empty();
+
+    if (data.length === 0) {
+        tableBody.html(`
+            <tr>
+                <td colspan="8" class="text-center">
+                    No endpoints available
+                </td>
+            </tr>
+        `);
+        return;
+    }
+
+    data.forEach((endpoint, index) => {
+        const row = $('<tr>');
+        console.log(`Processing endpoint ${index}:`, endpoint);
+
+        row.append(`<td>${endpoint.displayName || '-'}</td>`);
+        row.append(`<td>${endpoint.os?.name || endpoint.osName || '-'}</td>`);
+        row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
+        row.append(`<td>${endpoint.eppAgent?.endpointGroup || '-'}</td>`);
+        row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
+        
+        // Status column with badge
+        const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
+        const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
+        row.append(`<td>${statusBadge}</td>`);
+        
+        // Component Version column with badge
+        const componentVersion = endpoint.eppAgent?.componentVersion || '-';
+        const componentVersionClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
+        row.append(`<td><span class="badge ${componentVersionClass}">${componentVersion}</span></td>`);
+        
+        // Actions column with details button
+        const detailsButton = `
+            <button class="btn btn-sm btn-info" 
+                    onclick='showEndpointDetails("${endpoint.agentGuid}")'>
+                <i class="fas fa-info-circle"></i> Details
+            </button>`;
+        row.append(`<td>${detailsButton}</td>`);
+        
+        tableBody.append(row);
+    });
+}
