@@ -52,10 +52,19 @@ function updateEndpointsTable() {
                 // Update summary boxes
                 updateEndpointSummary(endpoints);
                 
+                // Update endpoint group filter
+                updateEndpointGroupFilter(endpoints);
+                
+                // Filter endpoints based on selected group
+                const selectedGroup = $('#endpointGroupFilter').val();
+                const filteredEndpoints = selectedGroup ? 
+                    endpoints.filter(endpoint => (endpoint.eppAgent?.endpointGroup || '-') === selectedGroup) : 
+                    endpoints;
+                
                 const tableBody = $('#trendEndpointsTable tbody');
                 tableBody.empty();
 
-                if (endpoints.length === 0) {
+                if (filteredEndpoints.length === 0) {
                     tableBody.html(`
                         <tr>
                             <td colspan="8" class="text-center">
@@ -66,7 +75,7 @@ function updateEndpointsTable() {
                     return;
                 }
 
-                endpoints.forEach((endpoint, index) => {
+                filteredEndpoints.forEach((endpoint, index) => {
                     const row = $('<tr>');
                     console.log(`Processing endpoint ${index}:`, endpoint);
 
@@ -121,6 +130,31 @@ function updateEndpointsTable() {
             `);
         }
     });
+}
+
+// Function to update endpoint group filter dropdown
+function updateEndpointGroupFilter(endpoints) {
+    const groups = new Set(endpoints.map(endpoint => endpoint.eppAgent?.endpointGroup || '-'));
+    const filterSelect = $('#endpointGroupFilter');
+    
+    // Save current selection
+    const currentSelection = filterSelect.val();
+    
+    // Clear and rebuild options
+    filterSelect.empty();
+    filterSelect.append('<option value="">All Groups</option>');
+    
+    // Add sorted groups
+    Array.from(groups)
+        .sort()
+        .forEach(group => {
+            filterSelect.append(`<option value="${group}">${group}</option>`);
+        });
+    
+    // Restore selection if it still exists in the new options
+    if (currentSelection && groups.has(currentSelection)) {
+        filterSelect.val(currentSelection);
+    }
 }
 
 // Function to show endpoint details in modal
@@ -228,8 +262,28 @@ $('<style>')
     `)
     .appendTo('head');
 
-// Initial load of endpoints data
+// Initial setup
 $(document).ready(function() {
+    // Add filter dropdown to the table header
+    $('#trendEndpointsTable thead tr').prepend(`
+        <tr>
+            <th colspan="8">
+                <div class="d-flex justify-content-end align-items-center mb-2">
+                    <label for="endpointGroupFilter" class="me-2">Filter by Group:</label>
+                    <select id="endpointGroupFilter" class="form-select form-select-sm" style="width: auto;">
+                        <option value="">All Groups</option>
+                    </select>
+                </div>
+            </th>
+        </tr>
+    `);
+
+    // Add filter change handler
+    $('#endpointGroupFilter').on('change', function() {
+        updateEndpointsTable();
+    });
+
+    // Initial load of endpoints data
     updateEndpointsTable();
     
     // Refresh data every 30 seconds
