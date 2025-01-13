@@ -158,6 +158,142 @@ function getStatusBadgeClass(status) {
     }
 }
 
+// Function to update endpoint summary boxes
+function updateEndpointSummary(endpoints) {
+    const totalEndpoints = endpoints.length;
+    const onlineEndpoints = endpoints.filter(endpoint => endpoint.status === 'on').length;
+    const offlineEndpoints = totalEndpoints - onlineEndpoints;
+
+    $('#totalEndpoints').text(totalEndpoints);
+    $('#onlineEndpoints').text(onlineEndpoints);
+    $('#offlineEndpoints').text(offlineEndpoints);
+}
+
+// Function to update the Trend Vision One endpoints table
+function updateEndpointsTable() {
+    $.ajax({
+        url: '/api/plugin/TrendVisionOne/getfulldesktops',
+        method: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            console.log('API Response:', response);
+            
+            if (response && response.result === 'Success' && Array.isArray(response.data.items)) {
+                const endpoints = response.data.items;
+                
+                // Update summary boxes
+                updateEndpointSummary(endpoints);
+                
+                const tableBody = $('#trendEndpointsTable tbody');
+                tableBody.empty();
+
+                if (endpoints.length === 0) {
+                    tableBody.html(`
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                No endpoints available
+                            </td>
+                        </tr>
+                    `);
+                    return;
+                }
+
+                endpoints.forEach((endpoint, index) => {
+                    const row = $('<tr>');
+                    console.log(`Processing endpoint ${index}:`, endpoint);
+
+                    row.append(`<td>${endpoint.displayName || '-'}</td>`);
+                    row.append(`<td>${endpoint.osName || '-'}</td>`);
+                    row.append(`<td>${endpoint.osVersion || '-'}</td>`);
+                    row.append(`<td>${endpoint.ipAddresses ? endpoint.ipAddresses.join(', ') : '-'}</td>`);
+                    row.append(`<td>${formatDateTime(endpoint.lastConnectedDateTime)}</td>`);
+                    
+                    // Status column with badge
+                    const statusBadge = `<span class="${getEndpointStatusBadgeClass(endpoint.status)}">${endpoint.status === 'on' ? 'Online' : 'Offline'}</span>`;
+                    row.append(`<td>${statusBadge}</td>`);
+                    
+                    // Actions column with details button
+                    const detailsButton = `
+                        <button class="btn btn-sm btn-info" 
+                                onclick='showEndpointDetails("${endpoint.agentGuid}")'>
+                            <i class="fas fa-info-circle"></i> Details
+                        </button>`;
+                    row.append(`<td>${detailsButton}</td>`);
+                    
+                    tableBody.append(row);
+                });
+            } else {
+                console.error('Invalid response structure:', response);
+                $('#trendEndpointsTable tbody').html(`
+                    <tr>
+                        <td colspan="7" class="text-center">
+                            ${response.message || 'Error loading endpoints'}
+                        </td>
+                    </tr>
+                `);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching endpoints:', error);
+            console.error('Status:', status);
+            console.error('Response:', xhr.responseText);
+            
+            $('#trendEndpointsTable tbody').html(`
+                <tr>
+                    <td colspan="7" class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading endpoints data
+                    </td>
+                </tr>
+            `);
+        }
+    });
+}
+
+// Initialize Bootstrap modal for endpoints
+let endpointModal;
+$(document).ready(function() {
+    endpointModal = new bootstrap.Modal(document.getElementById('endpointDetailsModal'));
+});
+
+// Function to show endpoint details in modal
+function showEndpointDetails(endpointId) {
+    $.ajax({
+        url: `/api/plugin/TrendVisionOne/getendpointdetails/${endpointId}`,
+        method: 'GET',
+        success: function(response) {
+            if (response.result === 'Success') {
+                const data = response.data;
+                $('#agentGuid').text(data.agentGuid || '-');
+                $('#displayName').text(data.displayName || '-');
+                $('#osName').text(data.osName || '-');
+                $('#osVersion').text(data.osVersion || '-');
+                $('#ipAddresses').text(data.ipAddresses ? data.ipAddresses.join(', ') : '-');
+                $('#lastConnectedDateTime').text(formatDateTime(data.lastConnectedDateTime));
+                $('#endpointStatus')
+                    .text(data.status === 'on' ? 'Online' : 'Offline')
+                    .removeClass()
+                    .addClass(getEndpointStatusBadgeClass(data.status));
+                $('#endpointGroup').text(data.endpointGroup || '-');
+                $('#protectionManager').text(data.protectionManager || '-');
+                
+                endpointModal.show();
+            } else {
+                console.error('Error loading endpoint details:', response);
+                toastr.error('Failed to load endpoint details: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading endpoint details:', error);
+            toastr.error('Failed to load endpoint details');
+        }
+    });
+}
+
+// Function to get appropriate badge class for endpoint status
+function getEndpointStatusBadgeClass(status) {
+    return status === 'on' ? 'badge bg-success text-white' : 'badge bg-danger text-white';
+}
+
 // Add custom styles
 $('<style>')
     .text(`
@@ -180,4 +316,12 @@ $(document).ready(function() {
     
     // Refresh data every 30 seconds
     setInterval(updateSessionsTable, 30000);
+});
+
+// Initial load of endpoints data
+$(document).ready(function() {
+    updateEndpointsTable();
+    
+    // Refresh data every 30 seconds
+    setInterval(updateEndpointsTable, 30000);
 });
