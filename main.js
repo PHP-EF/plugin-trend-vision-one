@@ -16,12 +16,22 @@ function formatDateTime(dateString) {
 // Function to update endpoint summary boxes
 function updateEndpointSummary(endpoints) {
     const totalEndpoints = endpoints.length;
-    const onlineEndpoints = endpoints.filter(endpoint => endpoint.agentUpdateStatus === 'onSchedule').length;
-    const offlineEndpoints = totalEndpoints - onlineEndpoints;
+    const clientWorkloads = endpoints.filter(endpoint => {
+        const osName = (endpoint.os?.name || endpoint.osName || '').toLowerCase();
+        return osName.includes('windows') && !osName.includes('server');
+    }).length;
+    const serverWorkloads = endpoints.filter(endpoint => {
+        const osName = (endpoint.os?.name || endpoint.osName || '').toLowerCase();
+        return osName.includes('server');
+    }).length;
+    const outdatedComponents = endpoints.filter(endpoint => 
+        endpoint.eppAgent?.componentVersion?.toLowerCase() === 'outdatedversion'
+    ).length;
 
     $('#totalEndpoints').text(totalEndpoints);
-    $('#onlineEndpoints').text(onlineEndpoints);
-    $('#offlineEndpoints').text(offlineEndpoints);
+    $('#clientWorkloads').text(clientWorkloads);
+    $('#serverWorkloads').text(serverWorkloads);
+    $('#outdatedComponents').text(outdatedComponents);
 }
 
 // Function to update the Trend Vision One endpoints table
