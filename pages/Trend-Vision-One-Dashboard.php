@@ -63,15 +63,15 @@
                             <th class="align-bottom">Endpoint Name</th>
                             <th class="align-bottom">OS Name</th>
                             <th class="align-bottom">IP Address</th>
-                            <th class="position-relative" style="min-width: 150px; height: 60px;">
-                                <div class="d-flex flex-column h-100">
+                            <th class="position-relative" style="min-width: 150px;">
+                                <div class="d-flex align-items-center">
                                     <span>Endpoint Group</span>
-                                    <div class="mt-2">
-                                        <select id="endpointGroupFilter" class="form-select form-select-sm" style="display: none;">
-                                            <option value="">All Groups</option>
-                                        </select>
-                                        <i class="fas fa-filter text-muted" style="cursor: pointer;" id="endpointGroupFilterIcon"></i>
-                                    </div>
+                                    <i class="fas fa-filter ms-2 text-muted" style="cursor: pointer;" id="endpointGroupFilterIcon"></i>
+                                </div>
+                                <div id="endpointGroupFilterContainer" class="filter-dropdown" style="display: none;">
+                                    <select id="endpointGroupFilter" class="form-select form-select-sm">
+                                        <option value="">All Groups</option>
+                                    </select>
                                 </div>
                             </th>
                             <th class="align-bottom">Last Connected</th>
