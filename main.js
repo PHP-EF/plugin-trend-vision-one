@@ -55,19 +55,24 @@ function filterEndpoints(endpoints, workloadType) {
 
 // Function to update summary boxes
 function updateSummaryBoxes(endpoints) {
+    if (!endpoints || !Array.isArray(endpoints)) {
+        console.error('Invalid endpoints data:', endpoints);
+        return;
+    }
+
     const clientWorkloads = endpoints.filter(endpoint => {
         const osName = endpoint.os?.name || endpoint.osName || '';
         return isClientWorkload(osName);
     });
-    
+
     const serverWorkloads = endpoints.filter(endpoint => {
         const osName = endpoint.os?.name || endpoint.osName || '';
         return !isClientWorkload(osName);
     });
-    
-    const outdatedComponents = endpoints.filter(endpoint => {
-        return endpoint.eppAgent?.componentVersion?.toLowerCase() === 'outdatedversion';
-    });
+
+    const outdatedComponents = endpoints.filter(endpoint => 
+        endpoint.eppAgent?.componentVersion?.toLowerCase() === 'outdatedversion'
+    );
 
     $('#totalEndpoints').text(endpoints.length);
     $('#clientWorkloads').text(clientWorkloads.length);
@@ -105,7 +110,6 @@ function initializeEndpointsTable(workloadType) {
                 tableBody.empty();
                 filteredEndpoints.forEach((endpoint, index) => {
                     const row = $('<tr>');
-                    console.log(`Processing endpoint ${index}:`, endpoint);
 
                     row.append(`<td>${endpoint.displayName || '-'}</td>`);
                     row.append(`<td>${endpoint.os?.name || endpoint.osName || '-'}</td>`);
@@ -134,7 +138,7 @@ function initializeEndpointsTable(workloadType) {
                 });
             } else {
                 console.error('Invalid response structure:', response);
-                $('#trendEndpointsTable tbody').html(`
+                tableBody.html(`
                     <tr>
                         <td colspan="7" class="text-center">
                             ${response.message || 'Error loading endpoints'}
@@ -148,7 +152,7 @@ function initializeEndpointsTable(workloadType) {
             console.error('Status:', status);
             console.error('Response:', xhr.responseText);
             
-            $('#trendEndpointsTable tbody').html(`
+            tableBody.html(`
                 <tr>
                     <td colspan="7" class="text-center text-danger">
                         <i class="fas fa-exclamation-triangle"></i> Error loading endpoints data
@@ -162,77 +166,60 @@ function initializeEndpointsTable(workloadType) {
 // Function to show endpoint details in modal
 function showEndpointDetails(endpointId) {
     $.ajax({
-        url: `/api/plugin/TrendVisionOne/getendpointdetails/${endpointId}`,
+        url: `/api/plugin/TrendVisionOne/getendpoint/${endpointId}`,
         method: 'GET',
         success: function(response) {
             if (response.result === 'Success' && response.data) {
-                const data = response.data;
-                // General Information
-                $('#agentGuid').text(data.agentGuid || '-');
-                $('#displayName').text(data.displayName || '-');
-                $('#osName').text(data.os?.name || data.osName || '-');
-                $('#osVersion').text(data.os?.version || '-');
-                $('#ipAddresses').text(data.lastUsedIp || '-');
-                $('#lastConnectedDateTime').text(formatDateTime(data.eppAgent?.lastConnectedDateTime) || '-');
-                $('#endpointStatus')
-                    .text(data.agentUpdateStatus === 'onSchedule' ? 'Online' : 'Offline')
-                    .removeClass()
-                    .addClass(getEndpointStatusBadgeClass(data.agentUpdateStatus === 'onSchedule'));
-                $('#endpointGroup').text(data.eppAgent?.endpointGroup || '-');
-                $('#protectionManager').text(data.eppAgent?.protectionManager || '-');
-
-                // EDR Information
-                const edrData = data.edrSensor || {};
+                const endpoint = response.data;
                 
-                // Connectivity badge
-                $('#edrConnectivity')
-                    .text(edrData.connectivity || '-')
-                    .removeClass('bg-success bg-danger')
-                    .addClass(edrData.connectivity?.toLowerCase() === 'connected' ? 'bg-success' : 'bg-danger');
-
-                $('#edrLastConnected').text(formatDateTime(edrData.lastConnectedDateTime) || '-');
-                $('#edrVersion').text(edrData.version || '-');
-
-                // Status badge
-                $('#edrStatus')
-                    .text(edrData.status || '-')
-                    .removeClass('bg-success bg-danger')
-                    .addClass(edrData.status?.toLowerCase() === 'enabled' ? 'bg-success' : 'bg-danger');
-
-                // Advanced Risk Telemetry badge
-                $('#edrAdvancedRiskTelemetry')
-                    .text(edrData.advancedRiskTelemetryStatus || '-')
-                    .removeClass('bg-success bg-danger')
-                    .addClass(edrData.advancedRiskTelemetryStatus?.toLowerCase() === 'enabled' ? 'bg-success' : 'bg-danger');
+                // Update modal fields
+                $('#agentGuid').text(endpoint.agentGuid || '-');
+                $('#displayName').text(endpoint.displayName || '-');
+                $('#osName').text(endpoint.os?.name || endpoint.osName || '-');
+                $('#osVersion').text(endpoint.os?.version || endpoint.osVersion || '-');
+                $('#ipAddresses').text(endpoint.lastUsedIp || '-');
+                $('#lastConnectedDateTime').text(formatDateTime(endpoint.eppAgent?.lastConnectedDateTime) || '-');
+                
+                const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
+                $('#endpointStatus')
+                    .text(isOnline ? 'Online' : 'Offline')
+                    .attr('class', getEndpointStatusBadgeClass(isOnline));
+                
+                $('#endpointGroup').text(endpoint.endpointGroup || '-');
+                $('#protectionManager').text(endpoint.protectionManager || '-');
                 
                 // EPP Information
-                const eppData = data.eppAgent || {};
-                $('#eppPolicyName').text(eppData.policyName || '-');
+                $('#eppPolicyName').text(endpoint.eppAgent?.policyName || '-');
+                $('#eppStatus').text(endpoint.eppAgent?.status || '-')
+                    .attr('class', endpoint.eppAgent?.status === 'Active' ? 'badge bg-success' : 'badge bg-warning');
+                $('#eppLastConnected').text(formatDateTime(endpoint.eppAgent?.lastConnectedDateTime) || '-');
+                $('#eppVersion').text(endpoint.eppAgent?.version || '-');
                 
-                // EPP Status badge
-                $('#eppStatus')
-                    .text(eppData.status || '-')
-                    .removeClass('bg-success bg-danger')
-                    .addClass(eppData.status?.toLowerCase() === 'on' ? 'bg-success' : 'bg-danger');
-                
-                $('#eppLastConnected').text(formatDateTime(eppData.lastConnectedDateTime) || '-');
-                $('#eppVersion').text(eppData.version || '-');
-                
-                // Component Version badge
+                const componentVersion = endpoint.eppAgent?.componentVersion || '-';
                 $('#eppComponentVersion')
-                    .text(eppData.componentVersion || '-')
-                    .removeClass('bg-success bg-danger')
-                    .addClass(eppData.componentVersion?.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success');
+                    .text(componentVersion)
+                    .attr('class', componentVersion.toLowerCase() === 'outdatedversion' ? 'badge bg-danger' : 'badge bg-success');
                 
+                // EDR Information
+                $('#edrConnectivity').text(endpoint.edrAgent?.connectivity || '-')
+                    .attr('class', endpoint.edrAgent?.connectivity === 'Connected' ? 'badge bg-success' : 'badge bg-warning');
+                $('#edrLastConnected').text(formatDateTime(endpoint.edrAgent?.lastConnectedDateTime) || '-');
+                $('#edrVersion').text(endpoint.edrAgent?.version || '-');
+                $('#edrStatus').text(endpoint.edrAgent?.status || '-')
+                    .attr('class', endpoint.edrAgent?.status === 'Active' ? 'badge bg-success' : 'badge bg-warning');
+                $('#edrRiskTelemetry').text(endpoint.edrAgent?.advancedRiskTelemetry ? 'Enabled' : 'Disabled')
+                    .attr('class', endpoint.edrAgent?.advancedRiskTelemetry ? 'badge bg-success' : 'badge bg-warning');
+                
+                // Show the modal
                 endpointModal.show();
             } else {
-                console.error('Error loading endpoint details:', response);
-                toastr.error('Failed to load endpoint details: ' + response.message);
+                console.error('Invalid endpoint details response:', response);
+                alert('Error loading endpoint details');
             }
         },
         error: function(xhr, status, error) {
-            console.error('Error loading endpoint details:', error);
-            toastr.error('Failed to load endpoint details');
+            console.error('Error fetching endpoint details:', error);
+            alert('Error loading endpoint details');
         }
     });
 }
@@ -242,22 +229,6 @@ let endpointModal;
 $(document).ready(function() {
     endpointModal = new bootstrap.Modal(document.getElementById('endpointDetailsModal'));
 });
-
-// Add custom styles
-$('<style>')
-    .text(`
-        .progress {
-            height: 20px;
-            margin-bottom: 0;
-        }
-        .progress-bar {
-            min-width: 2em;
-        }
-        .table td {
-            vertical-align: middle;
-        }
-    `)
-    .appendTo('head');
 
 // Initial load of endpoints data
 $(document).ready(function() {
