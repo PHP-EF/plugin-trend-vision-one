@@ -8,7 +8,7 @@ function formatDateTime(dateString) {
 // Function to update endpoint summary boxes
 function updateEndpointSummary(endpoints) {
     const totalEndpoints = endpoints.length;
-    const onlineEndpoints = endpoints.filter(endpoint => endpoint.status === 'on').length;
+    const onlineEndpoints = endpoints.filter(endpoint => endpoint.isolationStatus !== 'off').length;
     const offlineEndpoints = totalEndpoints - onlineEndpoints;
 
     $('#totalEndpoints').text(totalEndpoints);
@@ -25,8 +25,8 @@ function updateEndpointsTable() {
         success: function(response) {
             console.log('API Response:', response);
             
-            if (response && response.result === 'Success' && Array.isArray(response.data.items)) {
-                const endpoints = response.data.items;
+            if (response && response.result === 'Success' && response.data && response.data.items && Array.isArray(response.data.items.items)) {
+                const endpoints = response.data.items.items;
                 
                 // Update summary boxes
                 updateEndpointSummary(endpoints);
@@ -52,11 +52,12 @@ function updateEndpointsTable() {
                     row.append(`<td>${endpoint.displayName || '-'}</td>`);
                     row.append(`<td>${endpoint.osName || '-'}</td>`);
                     row.append(`<td>${endpoint.osVersion || '-'}</td>`);
-                    row.append(`<td>${endpoint.ipAddresses ? endpoint.ipAddresses.join(', ') : '-'}</td>`);
+                    row.append(`<td>${endpoint.ipAddresses ? endpoint.ipAddresses.join(', ') : endpoint.lastUsedIp || '-'}</td>`);
                     row.append(`<td>${formatDateTime(endpoint.lastConnectedDateTime)}</td>`);
                     
                     // Status column with badge
-                    const statusBadge = `<span class="${getEndpointStatusBadgeClass(endpoint.status)}">${endpoint.status === 'on' ? 'Online' : 'Offline'}</span>`;
+                    const isOnline = endpoint.isolationStatus !== 'off';
+                    const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
                     row.append(`<td>${statusBadge}</td>`);
                     
                     // Actions column with details button
@@ -96,12 +97,6 @@ function updateEndpointsTable() {
     });
 }
 
-// Initialize Bootstrap modal for endpoints
-let endpointModal;
-$(document).ready(function() {
-    endpointModal = new bootstrap.Modal(document.getElementById('endpointDetailsModal'));
-});
-
 // Function to show endpoint details in modal
 function showEndpointDetails(endpointId) {
     $.ajax({
@@ -117,9 +112,9 @@ function showEndpointDetails(endpointId) {
                 $('#ipAddresses').text(data.ipAddresses ? data.ipAddresses.join(', ') : '-');
                 $('#lastConnectedDateTime').text(formatDateTime(data.lastConnectedDateTime));
                 $('#endpointStatus')
-                    .text(data.status === 'on' ? 'Online' : 'Offline')
+                    .text(data.isolationStatus !== 'off' ? 'Online' : 'Offline')
                     .removeClass()
-                    .addClass(getEndpointStatusBadgeClass(data.status));
+                    .addClass(getEndpointStatusBadgeClass(data.isolationStatus !== 'off'));
                 $('#endpointGroup').text(data.endpointGroup || '-');
                 $('#protectionManager').text(data.protectionManager || '-');
                 
@@ -137,9 +132,15 @@ function showEndpointDetails(endpointId) {
 }
 
 // Function to get appropriate badge class for endpoint status
-function getEndpointStatusBadgeClass(status) {
-    return status === 'on' ? 'badge bg-success text-white' : 'badge bg-danger text-white';
+function getEndpointStatusBadgeClass(isOnline) {
+    return isOnline ? 'badge bg-success text-white' : 'badge bg-danger text-white';
 }
+
+// Initialize Bootstrap modal for endpoints
+let endpointModal;
+$(document).ready(function() {
+    endpointModal = new bootstrap.Modal(document.getElementById('endpointDetailsModal'));
+});
 
 // Add custom styles
 $('<style>')
