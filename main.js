@@ -46,20 +46,8 @@ function updateEndpointsTable() {
         success: function(response) {
             console.log('API Response:', response);
             
-            if (response && response.result === 'Success' && response.data) {
-                let endpoints;
-                
-                // Handle both array and nested object responses
-                if (Array.isArray(response.data)) {
-                    endpoints = response.data;
-                } else if (response.data.items && Array.isArray(response.data.items)) {
-                    endpoints = response.data.items;
-                } else if (response.data.items && response.data.items.items && Array.isArray(response.data.items.items)) {
-                    endpoints = response.data.items.items;
-                } else {
-                    console.error('Unexpected response format:', response);
-                    return;
-                }
+            if (response && response.result === 'Success' && response.data && response.data.items && Array.isArray(response.data.items.items)) {
+                const endpoints = response.data.items.items;
                 
                 // Update summary boxes
                 updateEndpointSummary(endpoints);
@@ -75,67 +63,42 @@ function updateEndpointsTable() {
                 
                 const tableBody = $('#trendEndpointsTable tbody');
                 tableBody.empty();
-                
+
                 if (filteredEndpoints.length === 0) {
-                    tableBody.html('<tr><td colspan="8" class="text-center">No endpoints available</td></tr>');
+                    tableBody.html(`
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                No endpoints available
+                            </td>
+                        </tr>
+                    `);
                     return;
                 }
-                
-                filteredEndpoints.forEach(endpoint => {
-                    const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
+
+                filteredEndpoints.forEach((endpoint, index) => {
                     const row = $('<tr>');
+                    console.log(`Processing endpoint ${index}:`, endpoint);
+
+                    row.append(`<td>${endpoint.displayName || '-'}</td>`);
+                    row.append(`<td>${endpoint.os?.name || endpoint.osName || '-'}</td>`);
+                    row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
+                    row.append(`<td>${endpoint.eppAgent?.endpointGroup || '-'}</td>`);
+                    row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
                     
-                    // Display Name (using endpointName as fallback)
-                    row.append(`<td>${endpoint.displayName || endpoint.endpointName || '-'}</td>`);
-                    
-                    // OS Name (handle all possible OS object structures)
-                    let osName = '-';
-                    if (endpoint.os) {
-                        if (endpoint.os.name) {
-                            osName = endpoint.os.name;
-                        } else if (endpoint.os.platform === 'Windows') {
-                            osName = 'Windows';
-                            if (endpoint.os.version) {
-                                // Remove "(Build xxxxx)" from version if present
-                                const versionWithoutBuild = endpoint.os.version.replace(/\s*\(Build \d+\)/, '');
-                                osName += ' ' + versionWithoutBuild;
-                            }
-                        }
-                    } else if (endpoint.osName) {
-                        osName = endpoint.osName;
-                    } else if (endpoint.type === 'desktop') {
-                        // If it's a desktop endpoint, default to Windows 10 if no other info available
-                        osName = 'Windows 10';
-                    }
-                    row.append(`<td>${osName}</td>`);
-                    
-                    // IP Address (get first available IP)
-                    const ipAddress = endpoint.lastUsedIp || 
-                                    (endpoint.interfaces && endpoint.interfaces[0]?.ipAddresses?.[0]) || 
-                                    '-';
-                    row.append(`<td>${ipAddress}</td>`);
-                    
-                    // Endpoint Group
-                    row.append(`<td>${endpoint.eppAgent?.endpointGroup || endpoint.endpointGroup || '-'}</td>`);
-                    
-                    // Last Connected
-                    const lastConnected = endpoint.eppAgent?.lastConnectedDateTime || 
-                                        endpoint.lastConnected || 
-                                        '-';
-                    row.append(`<td>${formatDateTime(lastConnected)}</td>`);
-                    
-                    // Status
-                    const statusBadge = `<span class="badge ${isOnline ? 'bg-success' : 'bg-danger'}">${isOnline ? 'Online' : 'Offline'}</span>`;
+                    // Status column with badge
+                    const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
+                    const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
                     row.append(`<td>${statusBadge}</td>`);
                     
-                    // Component Version
-                    const componentVersion = endpoint.eppAgent?.componentVersion || endpoint.componentVersion || '-';
-                    const versionBadgeClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
-                    row.append(`<td><span class="badge ${versionBadgeClass}">${componentVersion}</span></td>`);
+                    // Component Version column with badge
+                    const componentVersion = endpoint.eppAgent?.componentVersion || '-';
+                    const componentVersionClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
+                    row.append(`<td><span class="badge ${componentVersionClass}">${componentVersion}</span></td>`);
                     
-                    // Actions
+                    // Actions column with details button
                     const detailsButton = `
-                        <button class="btn btn-sm btn-info" onclick="showEndpointDetails('${endpoint.agentGuid}')">
+                        <button class="btn btn-sm btn-info" 
+                                onclick='showEndpointDetails("${endpoint.agentGuid}")'>
                             <i class="fas fa-info-circle"></i> Details
                         </button>`;
                     row.append(`<td>${detailsButton}</td>`);
@@ -143,11 +106,28 @@ function updateEndpointsTable() {
                     tableBody.append(row);
                 });
             } else {
-                console.error('Invalid response format:', response);
+                console.error('Invalid response structure:', response);
+                $('#trendEndpointsTable tbody').html(`
+                    <tr>
+                        <td colspan="8" class="text-center">
+                            ${response.message || 'Error loading endpoints'}
+                        </td>
+                    </tr>
+                `);
             }
         },
         error: function(xhr, status, error) {
-            console.error('Error fetching endpoints:', error);
+            console.error('Error:', error);
+            console.error('Status:', status);
+            console.error('Response:', xhr.responseText);
+            
+            $('#trendEndpointsTable tbody').html(`
+                <tr>
+                    <td colspan="8" class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading endpoints data
+                    </td>
+                </tr>
+            `);
         }
     });
 }
@@ -296,6 +276,125 @@ $(document).ready(function() {
         $('#endpointGroupFilterContainer').hide();
     });
 
+    // Function to populate filter dropdown
+    function populateEndpointGroupFilter(data) {
+        if (!Array.isArray(data)) {
+            console.error('Data is not an array:', data);
+            return;
+        }
+
+        const select = $('#endpointGroupFilter');
+        const currentValue = select.val();
+        select.find('option:not(:first)').remove();
+
+        // Get unique endpoint groups
+        const groups = [...new Set(data.map(item => item.eppAgent?.endpointGroup).filter(Boolean))].sort();
+        
+        // Add options
+        groups.forEach(group => {
+            select.append($('<option>', {
+                value: group,
+                text: group
+            }));
+        });
+
+        // Restore previous selection if it exists
+        if (currentValue && groups.includes(currentValue)) {
+            select.val(currentValue);
+        }
+    }
+
+    // Function to update table content
+    function updateTableContent(data) {
+        const tableBody = $('#trendEndpointsTable tbody');
+        tableBody.empty();
+
+        if (data.length === 0) {
+            tableBody.html('<tr><td colspan="8" class="text-center">No endpoints available</td></tr>');
+            return;
+        }
+
+        // Get selected group filter
+        const selectedGroup = $('#endpointGroupFilter').val();
+
+        // Filter data if group is selected
+        const filteredData = selectedGroup 
+            ? data.filter(item => item.eppAgent?.endpointGroup === selectedGroup)
+            : data;
+
+        filteredData.forEach(endpoint => {
+            const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
+            const row = $('<tr>');
+
+            row.append(`<td>${endpoint.displayName || '-'}</td>`);
+            row.append(`<td>${endpoint.os?.name || '-'}</td>`);
+            row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
+            row.append(`<td>${endpoint.eppAgent?.endpointGroup || '-'}</td>`);
+            row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
+            
+            // Status column with badge
+            const statusBadge = `<span class="badge ${isOnline ? 'bg-success' : 'bg-danger'}">${isOnline ? 'Online' : 'Offline'}</span>`;
+            row.append(`<td>${statusBadge}</td>`);
+            
+            // Component Version column with badge
+            const componentVersion = endpoint.eppAgent?.componentVersion || '-';
+            const versionBadgeClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
+            row.append(`<td><span class="badge ${versionBadgeClass}">${componentVersion}</span></td>`);
+            
+            // Actions column
+            const detailsButton = `
+                <button class="btn btn-sm btn-info" onclick="showEndpointDetails('${endpoint.agentGuid}')">
+                    <i class="fas fa-info-circle"></i> Details
+                </button>`;
+            row.append(`<td>${detailsButton}</td>`);
+            
+            tableBody.append(row);
+        });
+
+        // Update summary boxes
+        updateSummaryBoxes(data);
+    }
+
+    // Function to update summary boxes
+    function updateSummaryBoxes(data) {
+        const totalEndpoints = data.length;
+        const clientWorkloads = data.filter(e => e.os?.name?.toLowerCase().includes('windows')).length;
+        const serverWorkloads = data.filter(e => e.os?.name?.toLowerCase().includes('server')).length;
+        const outdatedComponents = data.filter(e => e.eppAgent?.componentVersion?.toLowerCase() === 'outdatedversion').length;
+
+        $('#totalEndpoints').text(totalEndpoints);
+        $('#clientWorkloads').text(clientWorkloads);
+        $('#serverWorkloads').text(serverWorkloads);
+        $('#outdatedComponents').text(outdatedComponents);
+    }
+
+    // Function to format date time
+    function formatDateTime(dateTimeStr) {
+        if (!dateTimeStr) return '-';
+        const date = new Date(dateTimeStr);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    // Update endpoints table
+    function updateEndpointsTable() {
+        $.ajax({
+            url: '/api/plugin/TrendVisionOne/getfulldesktops?top=1000',
+            method: 'GET',
+            success: function(response) {
+                if (!response || !Array.isArray(response)) {
+                    console.error('Invalid response format:', response);
+                    return;
+                }
+
+                populateEndpointGroupFilter(response);
+                updateTableContent(response);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching endpoints:', error);
+            }
+        });
+    }
+
     // Initial load of endpoints data
     updateEndpointsTable();
     
@@ -319,6 +418,7 @@ $('<style>')
         .table th {
             padding: 0.75rem;
             vertical-align: middle;
+            white-space: nowrap;
         }
         .filter-dropdown {
             position: absolute;
@@ -333,7 +433,7 @@ $('<style>')
             min-width: 200px;
             margin-top: 0.25rem;
         }
-        #endpointGroupFilter {
+        .form-select {
             font-size: 0.875rem;
             padding: 0.25rem;
             width: 100%;

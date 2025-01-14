@@ -149,90 +149,6 @@ class TrendVisionOne extends phpef {
 
         //// Everything after this line (188) is features and is permitted to be edited to build out the plugin features
 
-//     public function getJobStatus() {
-//         try {
-//             if (!$this->auth->checkAccess($this->config->get("Plugins", "VeeamPlugin")['ACL-READ'] ?? "ACL-READ")) {
-//                 throw new Exception("Access Denied - Missing READ permissions");
-//             }
-
-//             // Get all jobs sessions
-//             $states = $this->makeApiRequest("GET", "v1/jobs/states");
-            
-//             // For debugging
-//             echo "States Data Response:\n";
-//             print_r($states);
-            
-//             if (!$states) {
-//                 $this->api->setAPIResponse('Error', 'Failed to retrieve job states');
-//                 return false;
-//             }
-
-//             $jobStates = [];
-//             if (isset($states['data'])) {
-//                 $jobStates = $states['data'];
-//             }
-
-//             $this->api->setAPIResponse('Success', 'Retrieved ' . count($jobStates) . ' job states');
-//             $this->api->setAPIResponseData($jobStates);
-//             return true;
-//         } catch (Exception $e) {
-//             $this->api->setAPIResponse('Error', $e->getMessage());
-//             return false;
-//         }
-//     }
-
-//     public function getBackupJobs() {
-//         try {
-//             if (!$this->auth->checkAccess($this->config->get("Plugins", "VeeamPlugin")['ACL-READ'] ?? "ACL-READ")) {
-//                 throw new Exception("Access Denied - Missing READ permissions");
-//             }
-
-//             $jobsData = $this->makeApiRequest("GET","v1/jobs");
-//             if (!$jobsData) {
-//                 return false;
-//             }
-            
-//             echo "Jobs Data Response:\n";
-//             print_r($jobsData);
-            
-//             $jobs = [];
-//             if (isset($jobsData->data)) {
-//                 $jobs = $jobsData->data;
-//                 echo "\nParsed Jobs:\n";
-//                 print_r($jobs);
-//             } 
-            
-//             // $formattedJobs = [];
-//             // foreach ($jobs as $job) {
-//             //     if (!is_array($job)) continue;
-                
-//             //     $formattedJob = [
-//             //         'id' => $job->id ?? $job->Id ?? '',
-//             //         'name' => $job->name ?? $job->Name ?? '',
-//             //         'description' => $job->description ?? $job->Description ?? '',
-//             //         'type' => $job->type ?? $job->Type ?? '',
-//             //         'status' => $job->status ?? $job->Status ?? '',
-//             //         'lastRun' => $job->lastRun ?? $job->LastRun ?? '',
-//             //         'nextRun' => $job->nextRun ?? $job->NextRun ?? '',
-//             //         'target' => $job->target ?? $job->Target ?? '',
-//             //         'repository' => $job->repository ?? $job->Repository ?? '',
-//             //         'enabled' => $job->enabled ?? $job->Enabled ?? false
-//             //     ];
-                
-//             //     $formattedJobs[] = $formattedJob;
-//             // }
-            
-//             $this->api->setAPIResponse('Success', 'Retrieved ' . count($jobs) . ' backup jobs');
-//             $this->api->setAPIResponseData($jobs); //$formattedJobs
-//             return true;
-            
-//         } catch (Exception $e) {
-//             error_log("Error getting backup jobs: " . $e->getMessage());
-//             $this->api->setAPIResponse('Error', $e->getMessage());
-//             return false;
-//         }
-//     }
-
     public function getFullApiUrl() {
         try {
             $url = $this->getApiEndpoint("endpointSecurity/endpoints");
@@ -241,6 +157,69 @@ class TrendVisionOne extends phpef {
             $this->api->setAPIResponseData(['url' => $url]);
             return true;
         } catch (Exception $e) {
+            $this->api->setAPIResponse('Error', $e->getMessage());
+            return false;
+        }
+    }
+
+    public function GetVulnerableDevices() {
+        try {
+            if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
+                throw new Exception("Access Denied - Missing READ permissions");
+            }
+
+            // Set query parameters for 1000 records
+            $params = [
+                'top' => 1000,
+                'skip' => 0
+            ];
+
+            // Make API request with parameters
+            $result = $this->makeApiRequest("GET", "asrm/vulnerableDevices?" . http_build_query($params));
+            
+            if ($result === false) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve endpoints - API request failed');
+                return false;
+            }
+
+            if (empty($result)) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve endpoints - Empty response');
+                return false;
+            }
+
+            // Debug the response structure
+            error_log("API Response structure: " . print_r($result, true));
+            
+            // Check if we have a valid response with totalCount
+            if (isset($result->totalCount)) {
+                $responseData = [
+                    'totalCount' => $result->totalCount,
+                    'count' => $result->count,
+                    'items' => $result->items ?? []
+                ];
+                $this->api->setAPIResponse('Success', 'Retrieved ' . ($result->count) . ' endpoints');
+                $this->api->setAPIResponseData($responseData);
+            } else {
+                // Handle direct array response
+                $items = json_decode(json_encode($result), true);
+                if (is_array($items)) {
+                    $responseData = [
+                        'totalCount' => count($items),
+                        'count' => count($items),
+                        'items' => $items
+                    ];
+                    $this->api->setAPIResponse('Success', 'Retrieved ' . count($items) . ' endpoints');
+                    $this->api->setAPIResponseData($responseData);
+                } else {
+                    error_log("Unexpected response format: " . gettype($result));
+                    $this->api->setAPIResponse('Error', 'Unexpected API response structure');
+                    return false;
+                }
+            }
+            
+            return true;
+        } catch (Exception $e) {
+            error_log("Error in GetFullDesktops: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }

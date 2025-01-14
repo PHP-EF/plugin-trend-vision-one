@@ -45,39 +45,12 @@ $app->get('/plugin/TrendVisionOne/getendpointdetails/{id}', function ($request, 
         ->withStatus($GLOBALS['responseCode']);
 });
 
-// // Get Veeam Backup Jobs
-// $app->get('/plugin/TrendVisionOne/jobs', function ($request, $response, $args) {
-//     $TrendVisionOne = new TrendVisionOne();
-//     $TrendVisionOne->getBackupJobs();
-//     $response->getBody()->write(jsonE($GLOBALS['api']));
-//     return $response
-//         ->withHeader('Content-Type', 'application/json;charset=UTF-8')
-//         ->withStatus($GLOBALS['responseCode']);
-// });
-
-// // Get Veeam Backup Jobs Status
-// $app->get('/plugin/TrendVisionOne/jobsstatus', function ($request, $response, $args) {
-//     $TrendVisionOne = new TrendVisionOne();
-//     $TrendVisionOne->getJobStatus();
-//     $response->getBody()->write(jsonE($GLOBALS['api']));
-//     return $response
-//         ->withHeader('Content-Type', 'application/json;charset=UTF-8')
-//         ->withStatus(200);
-// });
-
-// // Get Veeam Backup Jobs Sessions
-// $app->get('/plugin/TrendVisionOne/jobssessions', function ($request, $response, $args) {
-//     $TrendVisionOne = new TrendVisionOne();
-//     $TrendVisionOne->GetSessionsJobs();
-    
-//     $responseData = [
-//         'result' => $GLOBALS['api']['result'],
-//         'message' => $GLOBALS['api']['message'],
-//         'data' => $GLOBALS['api']['data']
-//     ];
-    
-//     $response->getBody()->write(json_encode($responseData));
-//     return $response
-//         ->withHeader('Content-Type', 'application/json')
-//         ->withStatus(200);
-// });
+// Get Vulnerable Devices
+$app->get('/plugin/TrendVisionOne/getvulnerabledevices', function ($request, $response, $args) {
+    $TrendVisionOne = new TrendVisionOne();
+    $TrendVisionOne->GetVulnerableDevices();
+    $response->getBody()->write(jsonE($GLOBALS['api']));
+    return $response
+        ->withHeader('Content-Type', 'application/json;charset=UTF-8')
+        ->withStatus($GLOBALS['responseCode']);
+});
