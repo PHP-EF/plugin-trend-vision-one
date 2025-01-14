@@ -168,87 +168,19 @@ class TrendVisionOne extends phpef {
                 throw new Exception("Access Denied - Missing READ permissions");
             }
 
-            // Set query parameters according to API v3 spec
-            $params = [
-                'top' => 50,          // Number of records per page (default 50, max 200)
-                'skip' => 0,          // Number of records to skip
-                'orderBy' => 'cvssScore desc',  // Order by CVSS score descending
-                'select' => implode(',', [
-                    'endpointName',
-                    'ip',
-                    'mac',
-                    'os',
-                    'agentGuid',
-                    'cvssScore',
-                    'riskLevel',
-                    'vulnerabilityId',
-                    'vulnerabilityType',
-                    'detectedBy',
-                    'installedProductName',
-                    'installedProductVersion',
-                    'fixedProductVersion',
-                    'description',
-                    'recommendation',
-                    'firstDetected',
-                    'lastDetected'
-                ])
-            ];
-
-            // Make API request with parameters to v3.0 endpoint
-            $result = $this->makeApiRequest("GET", "v3.0/asrm/vulnerableDevices?" . http_build_query($params));
+            // Make API request
+            $result = $this->makeApiRequest("GET", "asrm/vulnerableDevices");
             
             if ($result === false) {
                 $this->api->setAPIResponse('Error', 'Failed to retrieve vulnerable devices - API request failed');
                 return false;
             }
 
-            if (empty($result)) {
-                $this->api->setAPIResponse('Error', 'Failed to retrieve vulnerable devices - Empty response');
-                return false;
-            }
+            // Just pass through the raw response
+            $this->api->setAPIResponse('Success', 'Retrieved raw device data');
+            $this->api->setAPIResponseData($result);
+            return true;
 
-            // Debug the response structure
-            error_log("API Response structure: " . print_r($result, true));
-            
-            // Handle the response according to v3 API structure
-            $items = json_decode(json_encode($result), true);
-            
-            if (isset($items['items']) && is_array($items['items'])) {
-                $responseData = [
-                    'totalCount' => $items['totalCount'] ?? count($items['items']),
-                    'count' => count($items['items']),
-                    'items' => array_map(function($item) {
-                        return [
-                            'endpointName' => $item['endpointName'] ?? '',
-                            'ip' => $item['ip'] ?? '',
-                            'mac' => $item['mac'] ?? '',
-                            'os' => $item['os'] ?? '',
-                            'agentGuid' => $item['agentGuid'] ?? '',
-                            'cvssScore' => $item['cvssScore'] ?? 0,
-                            'riskLevel' => $item['riskLevel'] ?? '',
-                            'vulnerabilityId' => $item['vulnerabilityId'] ?? '',
-                            'vulnerabilityType' => $item['vulnerabilityType'] ?? '',
-                            'detectedBy' => $item['detectedBy'] ?? '',
-                            'installedProductName' => $item['installedProductName'] ?? '',
-                            'installedProductVersion' => $item['installedProductVersion'] ?? '',
-                            'fixedProductVersion' => $item['fixedProductVersion'] ?? '',
-                            'description' => $item['description'] ?? '',
-                            'recommendation' => $item['recommendation'] ?? '',
-                            'firstDetected' => $item['firstDetected'] ?? '',
-                            'lastDetected' => $item['lastDetected'] ?? ''
-                        ];
-                    }, $items['items'])
-                ];
-                
-                $this->api->setAPIResponse('Success', 'Retrieved ' . $responseData['count'] . ' vulnerable devices');
-                $this->api->setAPIResponseData($responseData);
-                return true;
-            } else {
-                error_log("Unexpected response format: " . gettype($result));
-                $this->api->setAPIResponse('Error', 'Unexpected API response structure');
-                return false;
-            }
-            
         } catch (Exception $e) {
             error_log("Error in GetVulnerableDevices: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
