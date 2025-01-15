@@ -1,743 +1,577 @@
 <?php
+//// Everything after this line (2) is Core Functionality and no changes are permitted until after line (188).
 // **
 // USED TO DEFINE PLUGIN INFORMATION & CLASS
 // **
 
 // PLUGIN INFORMATION - This should match what is in plugin.json
-$GLOBALS['plugins']['CMDB'] = [ // Plugin Name
-	'name' => 'CMDB', // Plugin Name
-	'author' => 'TehMuffinMoo', // Who wrote the plugin
-	'category' => 'Asset Database', // One to Two Word Description
-	'link' => 'https://github.com/php-ef/plugin-cmdb', // Link to plugin info
-	'version' => '1.0.5', // SemVer of plugin
-	'image' => 'logo.png', // 1:1 non transparent image for plugin
-	'settings' => true, // does plugin need a settings modal?
-	'api' => '/api/plugin/cmdb/settings', // api route for settings page, or null if no settings page
+$GLOBALS['plugins']['TrendVisionOne'] = [ // Plugin Name
+    'name' => 'TrendVisionOne', // Plugin Name
+    'author' => 'TinyTechLabUK', // Who wrote the plugin
+    'category' => 'Anti Virus', // One to Two Word Description
+    'link' => 'https://github.com/PHP-EF/plugin-trend-vision-one', // Link to plugin info
+    'version' => '1.0.0.1', // SemVer of plugin
+    'image' => 'logo.png', // 1:1 non transparent image for plugin
+    'settings' => true, // does plugin need a settings modal?
+    'api' => '/api/plugin/TrendVisionOne/settings', // api route for settings page, or null if no settings page
 ];
 
-class cmdbPlugin extends phpef {
-	private $sql;
+class trendvisionone extends phpef {
+    private $pluginConfig;
+    private $sql;
 
-	public function __construct() {
-	  parent::__construct();
-	  // Create or open the SQLite database
-	  $dbFile = dirname(__DIR__,2). DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'cmdb.db';
-	  $this->sql = new PDO("sqlite:$dbFile");
-	  $this->sql->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-	  $this->hasDB();
-	}
+    public function __construct() {
+        parent::__construct();
+        $this->pluginConfig = $this->config->get('Plugins','TrendVisionOne') ?? [];
+        
+        // Initialize database connection
+        if ($this->initializeDBConnection()) {
+            $this->initializeDB();
+        }
+    }
 
-	// Check if Database & Tables Exist
-	private function hasDB() {
-		if ($this->sql) {
-			try {
-				// Query to check if both tables exist
-				$result = $this->sql->query("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('cmdb', 'cmdb_columns', 'cmdb_sections', 'misc')");
-				$tables = $result->fetchAll(PDO::FETCH_COLUMN);
-			
-				if (in_array('cmdb', $tables) && in_array('cmdb_columns', $tables) && in_array('cmdb_sections', $tables) && in_array('misc', $tables)) {
-					return true;
-				} else {
-					$this->createCMDBTables();
-				}
-			} catch (PDOException $e) {
-				$this->api->setAPIResponse("Error",$e->getMessage());
-				return false;
-			}
-		} else {
-			$this->api->setAPIResponse("Error","Database Not Initialized");
-			return false;
-		}
-	}
-
-	// Create CMDB Tables
-	private function createCMDBTables() {
-		// Create CMDB Table
-		$this->sql->exec("CREATE TABLE IF NOT EXISTS cmdb (
-		  id INTEGER PRIMARY KEY AUTOINCREMENT
-		)");
-
-		// Create CMDB Columns Table
-		$this->sql->exec("CREATE TABLE IF NOT EXISTS cmdb_sections (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT,
-			weight INTEGER
-		)");
-
-		// Create CMDB Columns Table
-		$this->sql->exec("CREATE TABLE IF NOT EXISTS cmdb_columns (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT UNIQUE,
-			description TEXT,
-			dataType TEXT,
-			fieldType TEXT,
-			section INTEGER,
-			visible BOOLEAN,
-			weight INTEGER,
-			columnName TEXT UNIQUE,
-			FOREIGN KEY (section) REFERENCES cmdb_sections(id)
-		)");
-
-		$this->sql->exec("CREATE TABLE IF NOT EXISTS misc (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			key TEXT,
-			value TEXT
-		)");
-
-		$this->sql->exec('INSERT INTO misc (key,value) VALUES ("rebuildRequired","false");');
-	
-		// Populate CMDB Sections table with list of base sections (Name / Weight)
-		$BaseSections = [
-			['General',1],
-			['Network',2],
-			['Hardware',3],
-		];
-		foreach ($BaseSections as $BaseSection) {
-			$Sections = $this->getSections();
-			if (!in_array($BaseSection[0],array_column($Sections,"name"))) {
-				$this->addSection($BaseSection[0],$BaseSection[1]);
-			}
-		}
-
-		// Populate CMDB Columns table with list of base columns (Column Name / Name / Description / Data Type / Field Type / Section ID / Visible / Weight)
-		$BaseColumns = [
-			['ServerName','Server Name','The name of the server','TEXT','INPUT',1,TRUE,1],
-			['Description','Description','The description of the server','TEXT','INPUT',1,TRUE,2],
-			['OperatingSystem','Operating System','The Operating System of the server','TEXT','INPUT',1,TRUE,3],
-			['FQDN','FQDN','The FQDN of the server','TEXT','INPUT',2,TRUE,1],
-			['IP','IP Address','The IP Address of the server','TEXT','INPUT',2,TRUE,2],
-			['SubnetMask','Subnet Mask','The Subnet Mask of the server','TEXT','INPUT',2,TRUE,3],
-			['DNSServers','DNS Servers','The DNS Servers of the server','TEXT','INPUT',2,TRUE,4],
-			['DNSSuffix','DNS Suffix','The DNS Suffix of the server','TEXT','INPUT',2,TRUE,5],
-			['Gateway','Gateway','The Gateway IP of the server','TEXT','INPUT',2,TRUE,6],
-			['CPU','CPUs','The number of CPUs the server has','INTEGER','INPUT',3,TRUE,1],
-			['Memory','Memory (GB)','The allocated memory of the server','INTEGER','INPUT',3,TRUE,2]
-		];
-
-		foreach ($BaseColumns as $BaseColumn) {
-			$ColumnDefinitions = $this->getColumnDefinitions();
-			if (!in_array($BaseColumn[0],array_column($ColumnDefinitions,"name"))) {
-				$this->addColumnDefinition($BaseColumn[0],$BaseColumn[1],$BaseColumn[2],$BaseColumn[3],$BaseColumn[4],$BaseColumn[5],$BaseColumn[6],$BaseColumn[7]);
-			}
-		}
-		foreach ($BaseColumns as $BaseColumn) {
-			$Columns = $this->getDefinedColumns();
-			if (!in_array($BaseColumn[0],$Columns)) {
-				$this->AddColumn($BaseColumn[0],$BaseColumn[2]);
-			}
-		}
-	}
-
-	// Rebuild Required
-	public function rebuildRequired($val = null) {
-		if ($val !== null) {
-			if ($val === true) {
-				$value = "true";
-			} elseif ($val == false) {
-				$value = "false";
-			}
-			$this->sql->exec('UPDATE misc SET value = "'.$value.'" WHERE key = "rebuildRequired"');
-		} else {
-			$stmt = $this->sql->prepare('SELECT * FROM misc WHERE key = :key');
-			$stmt->execute([':key' => 'rebuildRequired']);
-			$results = $stmt->fetch();
-			if ($results['value'] == "true") {
-				return true;
-			} elseif ($results['value'] == "false") {
-				return false;
-			}
-		}
-	}
-
-	// Update CMDB Columns
-	public function updateCMDBColumns($rebuild = false) {
-		// Decode JSON data
-		$columns = $this->getColumnDefinitions();
-		$definedColumns = $this->getDefinedColumns();
-
-		// Get current columns in the cmdb table
-		$current_columns = [];
-
-		foreach ($definedColumns as $currentColumn) {
-			$current_columns[$currentColumn['name']] = $currentColumn['type'];
-		}
-		
-		// Create a set of columns from the cmdb_columns table
-		$latest_columns = [];
-		foreach ($columns as $column) {
-			$latest_columns[$column['columnName']] = $column['dataType'];
-		}
-
-		// Add new columns
-		foreach ($latest_columns as $column => $data_type) {
-			if (!array_key_exists($column, $current_columns)) {
-				if (!$this->sql->query("ALTER TABLE cmdb ADD COLUMN $column $data_type")) {
-					$this->api->setAPIResponse('Error', 'Failed to add new column: ' . $column);
-					return false;
-				}
-			}
-		}
-
-		if ($rebuild) {
-			// Collect columns to keep
-			$columns_to_keep = array_intersect_key($current_columns, $latest_columns);
-			// Check if there are columns to remove
-			if (count($columns_to_keep) < count($current_columns)) {
-				// Create a new table with the desired columns
-				$create_table_sql = "CREATE TABLE cmdb_new (" . implode(", ", array_map(function($col, $type) {
-					return "$col $type";
-				}, array_keys($columns_to_keep), $columns_to_keep)) . ")";
-				if ($this->sql->query($create_table_sql)) {
-					// Copy data from the old table to the new table
-					$columns_list = implode(", ", array_keys($columns_to_keep));
-					if ($this->sql->query("INSERT INTO cmdb_new ($columns_list) SELECT $columns_list FROM cmdb")) {
-						// Replace the old table with the new table
-						if ($this->sql->query("DROP TABLE cmdb")) {
-							if ($this->sql->query("ALTER TABLE cmdb_new RENAME TO cmdb")) {
-								$this->rebuildRequired(false);
-								$this->api->setAPIResponseMessage('Successfully rebuilt database');
-							} else {
-								$this->api->setAPIResponse('Error','Failed to rename database');
-							}
-						} else {
-							$this->api->setAPIResponse('Error','Failed to drop old database');
-						}
-					} else {
-						$this->api->setAPIResponse('Error','Failed to clone current database');
-					}
-				} else {
-					$this->api->setAPIResponse('Error','Failed to create temporary database');
-				}
-			} else {
-				$this->api->setAPIResponseMessage('Rebuild is not required');
-				$this->rebuildRequired(false);
-			}
-		}
-	}
-
-	// Get a list of all columns in the CMDB Table
-	public function getDefinedColumns() {
-		$result = $this->sql->query('PRAGMA table_info("cmdb")');
-		$Columns = $result->fetchAll(PDO::FETCH_ASSOC);
-		return $Columns;
-	}
-	
-	// Check if a single column exists within the CMDB Table
-	public function columnExists($columnName) {
-		$Columns = $this->getDefinedColumns();
-		foreach ($Columns as $Column) {
-			if ($Column['name'] == $columnName) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	// Check if all specified columns exist within the CMDB Table
-	public function allColumnsExist($data) {
-		$columns = $this->getDefinedColumns();
-		foreach ($data as $key => $value) {
-		  if (!in_array($key,array_column($columns,"name"))) {
-			$this->api->setAPIResponse('Error',"The column: <b>".$key."</b> does not exist in the database. You must rebuild the database before using this field.");
-			return false;
-		  }
-		}
-		return true;
-	}
-
-	// Add new column to CMDB Table
-	public function addColumn($columnName,$dataType) {
-		$this->sql->exec("ALTER TABLE cmdb ADD COLUMN $columnName $dataType");
-	}
-
-	// ** Column Definitions ** //
-
-	// Get a list of Column Definitions
-	public function getColumnDefinitions() {
-		$result = $this->sql->query('SELECT * FROM cmdb_columns');
-		$Columns = $result->fetchAll(PDO::FETCH_ASSOC);
-		return $Columns;
-	}
-
-	// Get a Column Definition by Id
-	public function getColumnDefinitionById($ID) {
-		$dbquery = $this->sql->prepare('SELECT * FROM cmdb_columns WHERE id = :id');
-		$dbquery->execute(['id' => $ID]);
-		$Column = $dbquery->fetch(PDO::FETCH_ASSOC);
-		return $Column;
-	}
-
-	// Get a list of Column Definition by Section Id
-	public function getColumnDefinitionBySectionId($SectionID) {
-		$dbquery = $this->sql->prepare('SELECT * FROM cmdb_columns WHERE section = :section ORDER BY weight');
-		$dbquery->execute(['section' => $SectionID]);
-		$Columns = $dbquery->fetchAll(PDO::FETCH_ASSOC);
-		return $Columns;
-	}
-
-	// Add new column definition to CMDB Columns Table
-	public function addColumnDefinition($columnName,$name,$columnDescription,$dataType,$fieldType,$SectionID,$Visible,$Weight = null) {
-		$dbquery = $this->sql->prepare('SELECT EXISTS (SELECT 1 FROM cmdb_columns WHERE columnName = :columnName OR name = :name COLLATE NOCASE);');
-		$dbquery->execute([":columnName" => $columnName,":name" => $name]);
-		$results = $dbquery->fetchColumn() > 0;
-		if (!$results) {
-			if ($Weight) {
-				$dbquery = $this->sql->prepare("INSERT INTO cmdb_columns (columnName, name, description, dataType, fieldType, section, visible, weight) VALUES (:columnName, :name, :description, :dataType, :fieldType, :section, :visible, :weight);");
-				$execute = [":columnName" => $columnName,":name" => $name,":description" => $columnDescription, ":dataType" => $dataType, ":fieldType" => $fieldType, ":section" => $SectionID, ":visible" => $Visible, ":weight" => $Weight];
-			} else {
-				$dbquery = $this->sql->prepare("INSERT INTO cmdb_columns (columnName, name, description, dataType, fieldType, section, visible, weight) VALUES (:columnName, :name, :description, :dataType, :fieldType, :section, :visible, (SELECT IFNULL(MAX(weight), 0) + 1 FROM cmdb_columns WHERE section = :section));");
-				$execute = [":columnName" => $columnName,":name" => $name,":description" => $columnDescription, ":dataType" => $dataType, ":fieldType" => $fieldType, ":section" => $SectionID, ":visible" => $Visible];
-			}
-			if ($dbquery->execute($execute)) {
-				$this->api->setAPIResponseMessage('Successfully added column');
-				$this->updateCMDBColumns();
-				return true;
-			}
-		} else {
-			$this->api->setAPIResponse('Error','Column already exists');
-			return false;
-		}
-		$this->api->setAPIResponse('Error','Failed to add column');
-		return false;
-	}
-
-	// Updates a column definition within the CMDB cmdb_columns Table
-	public function updateColumnDefinition($id,$data) {
-		if ($this->getColumnDefinitionById($id)) {
-			$updateFields = [];
-			foreach ($data as $key => $value) {
-			  $updateFields[] = "$key = '$value'";
-			}
-			if (!empty($updateFields)) {
-				$prepare = "UPDATE cmdb_columns SET " . implode(", ", $updateFields) . " WHERE id = :id";
-				$dbquery = $this->sql->prepare($prepare);
-				if ($dbquery->execute([':id' => $id])) {
-					$this->api->setAPIResponseMessage('Successfully updated column');
-					return true;
-				}
-				$this->api->setAPIResponse('Error','Failed to update column');
-				return false;
-			} else {
-				$this->api->setAPIResponseMessage('Nothing to update');
-			}
-		} else {
-			$this->api->setAPIResponse('Error','Column does not exist');
-			return false;
-		}
-	}
-
-	// Remove column from the CMDB Columns Table
-	public function removeColumnDefinition($id) {
-		if ($this->getColumnDefinitionById($id)) {
-			$dbquery = $this->sql->prepare("DELETE FROM cmdb_columns WHERE id = :id;");
-			if ($dbquery->execute([':id' => $id])) {
-				$this->api->setAPIResponseMessage('Successfully removed column');
-				$this->rebuildRequired(true);
-				return true;
-			}
-			$this->api->setAPIResponse('Error','Failed to remove column');
-			return false;
-		} else {
-			$this->api->setAPIResponse('Error','Column does not exist');
-			return false;
-		}
-	}
-
-	// Function to manage updating weights of Column Definitions
-	public function updateColumnWeight($id,$weight) {
-		$Column = $this->getColumnDefinitionById($id);
-		if ($Column) {
-			// Update the weight of the specific row
-			$updateRow = $this->sql->prepare("UPDATE cmdb_columns SET weight = :weight WHERE id = :id AND section = :section;");
-			$execute = [":id" => $id, ":weight" => $weight, ":section" => $Column['section']];
-			if ($updateRow->execute($execute)) {
-				// Shift the weights of other rows
-				$updateOtherRows = $this->sql->prepare("UPDATE cmdb_columns SET weight = weight + 1 WHERE id != :id AND section = :section AND weight >= :weight;");
-				if ($updateOtherRows->execute($execute)) {
-					// Enforce strict weight assignment
-					$enforceConsecutiveWeights = $this->sql->prepare('
-					WITH NumberedRows AS (
-						SELECT 
-							id, 
-							ROW_NUMBER() OVER (ORDER BY weight) AS row_number
-						FROM 
-							cmdb_columns
-						WHERE 
-							section = :section
-					)
-					UPDATE cmdb_columns
-					SET weight = (SELECT row_number FROM NumberedRows WHERE cmdb_columns.id = NumberedRows.id)
-					WHERE section = :section;');
-					if ($enforceConsecutiveWeights->execute([":section" => $Column['section']])) {
-						return true;
-					}
-				}
-			}
-		} else {
-			$this->api->setAPIResponse('Error','Column not found');
-			return false;
-		}
-	}
-
-	// ** Sections ** //
-
-	// Get a list of CMDB Sections
-	public function getSections() {
-		$result = $this->sql->query('SELECT * FROM cmdb_sections ORDER BY weight');
-		$Sections = $result->fetchAll(PDO::FETCH_ASSOC);
-		return $Sections;
-	}
-
-	// Get a CMDB Section by ID
-	public function getSectionById($ID) {
-		$dbquery = $this->sql->prepare('SELECT * FROM cmdb_sections WHERE id = :id');
-		$dbquery->execute(["id" => $ID]);
-		$Section = $dbquery->fetch(PDO::FETCH_ASSOC);
-		return $Section;
-	}
-
-	// Get a joined list of columns and sections
-	public function getColumnsAndSections() {
-		$dbquery = $this->sql->prepare('SELECT 
-			cmdb_columns.id,
-			cmdb_columns.name,
-			cmdb_columns.description,
-			cmdb_columns.dataType,
-			cmdb_columns.fieldType,
-			cmdb_columns.visible,
-			cmdb_columns.columnName,
-			cmdb_sections.id AS section_id,
-			cmdb_sections.name AS section_name,
-			cmdb_sections.weight AS section_weight,
-			cmdb_columns.weight AS column_weight
-		FROM 
-			cmdb_sections
-		JOIN 
-			cmdb_columns
-		ON 
-			cmdb_sections.id = cmdb_columns.section;
-		');
-		$dbquery->execute();
-		$Columns = $dbquery->fetchAll(PDO::FETCH_ASSOC);
-		return $Columns;
-	}
-
-	// Add new section to CMDB Sections Table
-	public function addSection($name,$weight = null) {
-		if ($weight) {
-			$dbquery = $this->sql->prepare("INSERT INTO cmdb_sections (name, weight) VALUES (:name, :weight);");
-			$execute = [":name" => $name, ":weight" => $weight];
-		} else {
-			$dbquery = $this->sql->prepare("INSERT INTO cmdb_sections (name, weight) VALUES (:name, (SELECT IFNULL(MAX(weight), 0) + 1 FROM cmdb_sections));");
-			$execute = [":name" => $name];
-		}
-		if ($dbquery->execute($execute)) {
-			$this->api->setAPIResponseMessage('Successfully added section');
-			return true;
-		}
-		$this->api->setAPIResponse('Error','Failed to add section');
-		return false;
-	}
-
-	// Updates a section within the CMDB Sections Table
-	public function updateSection($id,$name) {
-		if ($this->getSectionById($id)) {
-			$dbquery = $this->sql->prepare("UPDATE cmdb_sections SET name = :name WHERE id = :id;");
-			if ($dbquery->execute([':id' => $id,':name' => $name])) {
-				$this->api->setAPIResponseMessage('Successfully updated section');
-				return true;
-			}
-			$this->api->setAPIResponse('Error','Failed to update section');
-			return false;
-		} else {
-			$this->api->setAPIResponse('Error','Section does not exist');
-			return false;
-		}
-	}
-
-	// Remove section from the CMDB Sections Table
-	public function removeSection($id) {
-		if ($this->getSectionById($id)) {
-			$dbquery = $this->sql->prepare("DELETE FROM cmdb_sections WHERE id = :id;");
-			if ($dbquery->execute([':id' => $id])) {
-				$this->api->setAPIResponseMessage('Successfully removed section');
-				return true;
-			}
-			$this->api->setAPIResponse('Error','Failed to remove section');
-			return false;
-		} else {
-			$this->api->setAPIResponse('Error','Section does not exist');
-			return false;
-		}
-	}
-
-	// Function to manage updating weights of Column Definitions
-	public function updateSectionWeight($id,$weight) {
-		$Section = $this->getSectionById($id);
-		if ($Section) {
-			// Update the weight of the specific row
-			$updateRow = $this->sql->prepare("UPDATE cmdb_sections SET weight = :weight WHERE id = :id;");
-			$execute = [":id" => $id, ":weight" => $weight];
-			if ($updateRow->execute($execute)) {
-				// Shift the weights of other rows
-				$updateOtherRows = $this->sql->prepare("UPDATE cmdb_sections SET weight = weight + 1 WHERE id != :id AND weight >= :weight;");
-				if ($updateOtherRows->execute($execute)) {
-					// Enforce strict weight assignment
-					$enforceConsecutiveWeights = $this->sql->prepare('
-					WITH NumberedRows AS (
-						SELECT 
-							id, 
-							ROW_NUMBER() OVER (ORDER BY weight) AS row_number
-						FROM 
-							cmdb_sections
-					)
-					UPDATE cmdb_sections
-					SET weight = (SELECT row_number FROM NumberedRows WHERE cmdb_sections.id = NumberedRows.id);');
-					if ($enforceConsecutiveWeights->execute()) {
-						return true;
-					}
-				}
-			}
-		} else {
-			$this->api->setAPIResponse('Error','Section not found');
-			return false;
-		}
-	}
-
-	// ** RECORDS ** //
-
-	public function getAllRecords() {
-		$dbquery = $this->sql->prepare("SELECT * FROM cmdb");
-        $dbquery->execute();
-		$records = $dbquery->fetchAll(PDO::FETCH_ASSOC);
-		return $records;
-	}
-
-	public function getRecordById($id) {
-		$dbquery = $this->sql->prepare("SELECT * FROM cmdb WHERE id = :id");
-        $dbquery->execute([':id' => $id]);
-		$records = $dbquery->fetchAll(PDO::FETCH_ASSOC);
-		return $records;
-	}
-
-	public function updateRecord($id,$data) {
-      // Check if all record exists
-	  if ($this->getRecordById($id)) {
-		// Check if all fields exist
-		if (!empty($data)) {
-		  if ($this->allColumnsExist($data)) {
-			// Update fields if all exist
-			$updateFields = [];
-			foreach ($data as $key => $value) {
-			  $updateFields[] = "$key = '$value'";
-			}
-			$prepare = "UPDATE cmdb SET " . implode(", ", $updateFields) . " WHERE id = :id";
-			$dbquery = $this->sql->prepare($prepare);
-			if ($dbquery->execute(['id' => $id])) {
-			  $this->api->setAPIResponseMessage("CMDB record updated successfully");
-			} else {
-			  $this->api->setAPIResponse('Error',$conn->lastErrorMsg());
-			}
-		  }
-		} else {
-			$this->api->setAPIResponseMessage("Nothing to update");
-		}
-	  }
-	}
-
-	public function newRecord($data) {
-	  // Check if all fields exist
-	  if ($this->allColumnsExist($data)) {
-		// Prepare fields and values for insertion
-		$columns = implode(", ", array_keys($data));
-		$values = implode(", ", array_map(function($value) {
-			return "'$value'";
-		}, array_values($data)));
-		
-		$prepare = "INSERT INTO cmdb ($columns) VALUES ($values)";
-		$dbquery = $this->sql->prepare($prepare);
-		
-		if ($dbquery->execute()) {
-			$this->api->setAPIResponseMessage("CMDB record created successfully");
-		} else {
-			$this->api->setAPIResponse('Error', $this->sql->lastErrorMsg());
-		}
-	  }
-	}
-
-	public function deleteRecord($id) {
-		// Check if all record exists
-		if ($this->getRecordById($id)) {
-		  $dbquery = $this->sql->prepare("DELETE FROM cmdb WHERE id = :id");
-		  if ($dbquery->execute([':id' => $id])) {
-			  $this->api->setAPIResponseMessage("CMDB record deleted successfully");
-		  } else {
-			  $this->api->setAPIResponse('Error', $this->sql->lastErrorMsg());
-		  }
-		} else {
-			$this->api->setAPIResponse("Error","CMDB record does not exist");
-		}
-	}
-
-	public function _pluginGetSettings() {
-		$Ansible = new cmdbPluginAnsible();
-		$AnsibleLabels = $Ansible->GetAnsibleLabels() ?? [];
-		$AnsibleLabelsKeyValuePairs = [];
-		$AnsibleLabelsKeyValuePairs[] = [
-			"name" => "None",
-			"value" => ""
-		];
-		if ($AnsibleLabels) {
-			$AnsibleLabelsKeyValuePairs = array_merge($AnsibleLabelsKeyValuePairs,array_map(function($item) {
-				return [
-					"name" => $item['name'],
-					"value" => $item['name']
-				];
-			}, $AnsibleLabels));
-		}
-		return array(
-			'Plugin Settings' => array(
-				$this->settingsOption('auth', 'ACL-READ', ['label' => 'CMDB Read ACL']),
-				$this->settingsOption('auth', 'ACL-WRITE', ['label' => 'CMDB Write ACL']),
-				$this->settingsOption('auth', 'ACL-ADMIN', ['label' => 'CMDB Admin ACL']),
-				$this->settingsOption('auth', 'ACL-JOB', ['label' => 'Grants access to use Ansible Integration'])
-			),
-			'Ansible Settings' => array(
-				$this->settingsOption('url', 'Ansible-URL', ['label' => 'Ansible AWX URL']),
-				$this->settingsOption('token', 'Ansible-Token', ['label' => 'Ansible AWX Token']),
-				$this->settingsOption('select-multiple', 'Ansible-Tag', ['label' => 'The tag to use when filtering available jobs', 'options' => $AnsibleLabelsKeyValuePairs]),
-				$this->settingsOption('blank'),
-				$this->settingsOption('checkbox','Ansible-JobByLabel', ['label' => 'Organise Jobs by Label'])
-			),
-		);
-	}
-}
-
-class cmdbPluginAnsible extends cmdbPlugin {
-	public function __construct() {
-	  parent::__construct();
-	}
-
-	public function QueryAnsible($Method, $Uri, $Data = "") {
-		$cmdbConfig = $this->config->get("Plugins","CMDB");
-		$AnsibleUrl = $cmdbConfig['Ansible-URL'] ?? null;
-
-        if (!isset($cmdbConfig['Ansible-Token']) || empty($cmdbConfig['Ansible-Token'])) {
-            $this->api->setAPIResponse('Error','Ansible API Key Missing');
-            $this->logging->writeLog("CMDB","Ansible API Key Missing","error");
+    private function initializeDBConnection() {
+        try {
+            $dbFile = dirname(__DIR__,2). DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'trendvisionone.db';
+            $this->sql = new PDO("sqlite:$dbFile");
+            $this->sql->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Log initial foreign keys state
+            $initialState = $this->sql->query('PRAGMA foreign_keys;')->fetch(PDO::FETCH_COLUMN);
+            error_log("[TrendVisionOne] Initial foreign_keys state: " . ($initialState ? 'ON' : 'OFF'));
+            
+            // Enable foreign key support
+            $this->sql->exec('PRAGMA foreign_keys = ON;');
+            
+            // Verify foreign keys are enabled
+            $foreignKeysEnabled = $this->sql->query('PRAGMA foreign_keys;')->fetch(PDO::FETCH_COLUMN);
+            error_log("[TrendVisionOne] Foreign keys enabled: " . ($foreignKeysEnabled ? 'YES' : 'NO'));
+            
+            if (!$foreignKeysEnabled) {
+                error_log("[TrendVisionOne] Warning: Foreign keys could not be enabled");
+            } else {
+                error_log("[TrendVisionOne] Database connection established with foreign keys enabled");
+            }
+            
+            return true;
+        } catch (PDOException $e) {
+            error_log("[TrendVisionOne] Database connection error: " . $e->getMessage());
             return false;
-        } else {
+        }
+    }
+
+    // Initialize database and create tables if they don't exist
+    public function initializeDB() {
+        try {
+            // Create devices table
+            $this->sql->exec("CREATE TABLE IF NOT EXISTS devices (
+                id VARCHAR(36) PRIMARY KEY,
+                device_name VARCHAR(255),
+                criticality VARCHAR(50),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+
+            // Create device_ips table
+            $this->sql->exec("CREATE TABLE IF NOT EXISTS device_ips (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_id VARCHAR(36),
+                ip_address VARCHAR(45),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (device_id) REFERENCES devices(id)
+            )");
+
+            // Create cve_records table
+            $this->sql->exec("CREATE TABLE IF NOT EXISTS cve_records (
+                id VARCHAR(50) PRIMARY KEY,
+                cvss_score FLOAT,
+                event_risk_level VARCHAR(50),
+                global_exploit_activity_level VARCHAR(50),
+                exploit_attempt_count INTEGER,
+                mitigation_status VARCHAR(50),
+                published_datetime DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+
+            // Create device_cve_mapping table
+            $this->sql->exec("CREATE TABLE IF NOT EXISTS device_cve_mapping (
+                device_id VARCHAR(36),
+                cve_id VARCHAR(50),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (device_id, cve_id),
+                FOREIGN KEY (device_id) REFERENCES devices(id),
+                FOREIGN KEY (cve_id) REFERENCES cve_records(id)
+            )");
+
+            // Create affected_components table
+            $this->sql->exec("CREATE TABLE IF NOT EXISTS affected_components (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cve_id VARCHAR(50),
+                component_name VARCHAR(255),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (cve_id) REFERENCES cve_records(id)
+            )");
+
+            // Create linux_remediations table
+            $this->sql->exec("CREATE TABLE IF NOT EXISTS linux_remediations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cve_id VARCHAR(50),
+                package_name VARCHAR(255),
+                minimum_patched_version VARCHAR(255),
+                product_distribution VARCHAR(255),
+                release_date DATE,
+                security_advisory_id VARCHAR(50),
+                security_advisory_link TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (cve_id) REFERENCES cve_records(id)
+            )");
+
+            // Create misc table for storing last sync time and other metadata
+            $this->sql->exec("CREATE TABLE IF NOT EXISTS misc (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT UNIQUE,
+                value TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+
+            // Initialize last sync time if not exists
+            $this->sql->exec('INSERT OR IGNORE INTO misc (key, value) VALUES ("last_sync", "0")');
+
+            // Create indexes for better query performance
+            $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_device_ips_device_id ON device_ips(device_id);');
+            $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_device_cve_mapping_device_id ON device_cve_mapping(device_id);');
+            $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_device_cve_mapping_cve_id ON device_cve_mapping(cve_id);');
+            $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_affected_components_cve_id ON affected_components(cve_id);');
+            $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_linux_remediations_cve_id ON linux_remediations(cve_id);');
+            $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_cve_records_cvss ON cve_records(cvss_score);');
+            $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_cve_records_risk ON cve_records(event_risk_level);');
+
+            error_log("[TrendVisionOne] Database tables created/verified successfully");
+            return true;
+        } catch (PDOException $e) {
+            error_log("[TrendVisionOne] Database Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+        //Protected function to define the settings for this plugin
+    public function _pluginGetSettings() {
+        return array(
+            'Plugin Settings' => array(
+                $this->settingsOption('auth', 'ACL-READ', ['label' => 'TrendVisionOne B&R Read ACL']),
+                $this->settingsOption('auth', 'ACL-WRITE', ['label' => 'TrendVisionOne B&R Write ACL']),
+                $this->settingsOption('auth', 'ACL-ADMIN', ['label' => 'TrendVisionOne B&R Admin ACL']),
+                $this->settingsOption('auth', 'ACL-JOB', ['label' => 'Grants access to use TrendVisionOne Integration'])
+            ),
+            'TrendVisionOne Settings' => array(
+                $this->settingsOption('url', 'TrendVisionOne-URL', [
+                    'label' => 'TrendVisionOne URL',
+                    'description' => 'The URL of your TrendVisionOne (e.g., https://api.eu.xdr.trendmicro.com/). Uses port 443 for HTTPS.'
+                ]),
+                $this->settingsOption('password', 'TrendVisionOne-Api-Token', [
+                    'label' => 'TrendVisionOne API Token',
+                    'description' => 'API Token for TrendVisionOne authentication'
+                ])
+            )
+        );
+    }
+
+        //Protected function to define the api and build the required api for the plugin
+    private function getApiEndpoint($path, $params = []) {
+        $baseUrl = $this->getTrendVisionOneUrl();
+        // Ensure path starts with /v3.0
+        if (strpos($path, '/v3.0/') !== 0) {
+            $path = '/v3.0/' . ltrim($path, '/');
+        }
+        $url = $baseUrl . $path;
+        
+        // Add query parameters if they exist
+        if (!empty($params)) {
+            $url .= '?' . http_build_query($params);
+        }
+        
+        error_log("Full API URL: " . $url);
+        return $url;
+    }
+
+        //Protected function to define the TrendVisionOne URL to build the required URI for the TrendVisionOne Plugin
+    private function getTrendVisionOneUrl() {
+        if (!isset($this->pluginConfig['TrendVisionOne-URL']) || empty($this->pluginConfig['TrendVisionOne-URL'])) {
+            throw new Exception("TrendVisionOne URL not configured. Please set 'TrendVisionOne-URL' in config.json");
+        }
+        // Remove trailing slash if present
+        return rtrim($this->pluginConfig['TrendVisionOne-URL'], '/');
+    }
+
+        //Protected function to decrypt the password and build out a valid token for Veeam Plugin
+    private function getAccessToken($force = false) {
+        try {
+            if (!isset($this->pluginConfig['TrendVisionOne-Api-Token'])) {
+                throw new Exception("TrendVisionOne API Token not configured. Please set 'TrendVisionOne-Api-Token' in config.json");
+            }
+
             try {
-                $AnsibleApiKey = decrypt($cmdbConfig['Ansible-Token'],$this->config->get('Security','salt'));
+                $apiToken = decrypt($this->pluginConfig['TrendVisionOne-Api-Token'], $this->config->get('Security','salt'));
             } catch (Exception $e) {
-                $this->api->setAPIResponse('Error','Unable to decrypt Ansible API Key');
-                $this->logging->writeLog('CMDB','Unable to decrypt Ansible API Key','error');
+                $this->api->setAPIResponse('Error', 'Unable to decrypt TrendVisionOne API Token');
+                $this->logging->writeLog('TrendVisionOne-Api-Token', 'Unable to decrypt TrendVisionOne API Token', 'error');
                 return false;
             }
+
+            return $apiToken;
+
+        } catch (Exception $e) {
+            error_log("Error getting access token: " . $e->getMessage());
+            throw $e;
         }
+    }
+    
 
-		if (!$AnsibleUrl) {
-				$this->api->setAPIResponse('Error','Ansible URL Missing');
-				return false;
-		}
+        //Protected function to for making API Request to Veeam for Get/Post/Put/Delete
+    public function makeApiRequest($Method, $Uri, $Data = "") {
+        try {
+            if (!isset($this->pluginConfig['TrendVisionOne-URL']) || empty($this->pluginConfig['TrendVisionOne-URL'])) {
+                throw new Exception("TrendVisionOne URL not configured");
+            }
 
-		$AnsibleHeaders = array(
-		 'Authorization' => "Bearer $AnsibleApiKey",
-		 'Content-Type' => "application/json"
-		);
+            $apiToken = $this->getAccessToken();
+            if (!$apiToken) {
+                throw new Exception("Failed to get TrendVisionOne API Token");
+            }
 
-		if (strpos($Uri,$AnsibleUrl."/api/") === FALSE) {
-		  $Url = $AnsibleUrl."/api/v2/".$Uri;
-		} else {
-		  $Url = $Uri;
-		}
+            $headers = array(
+                'Accept' => 'application/json',
+                'Authorization' => 'Bearer ' . $apiToken
+            );
 
-		if ($Method == "get") {
-			$Result = $this->api->query->$Method($Url,$AnsibleHeaders,null,true);
-		} else {
-			$Result = $this->api->query->$Method($Url,$Data,$AnsibleHeaders,null,true);
-		}
-		if (isset($Result->status_code)) {
-		  if ($Result->status_code >= 400 && $Result->status_code < 600) {
-			switch($Result->status_code) {
-			  case 401:
-				$this->api->setAPIResponse('Error','Ansible API Key incorrect or expired');
-				$this->logging->writeLog("Ansible","Error. Ansible API Key incorrect or expired.","error");
-				break;
-			  case 404:
-				$this->api->setAPIResponse('Error','HTTP 404 Not Found');
-				break;
-			  default:
-				$this->api->setAPIResponse('Error','HTTP '.$Result->status_code);
-				break;
-			}
-		  }
-		}
-		if ($Result->body) {
-		  $Output = json_decode($Result->body,true);
-		  if (isset($Output['results'])) {
-				return $Output['results'];
-		  } else {
-				return $Output;
-		  }
-		} else {
-			if (!$GLOBALS['api']['data']) {
-				$this->api->setAPIResponse('Warning','No results returned from the API');
-			}
-		}
-	}
-	
-	public function GetAnsibleJobTemplate($id = null,$label = null) {
-	  $Filters = array();
-	  $AnsibleTags = $this->config->get("Plugins","CMDB")['Ansible-Tag'] ?? null;
-	  if ($label) {
-		array_push($Filters, "labels__name__in=$label");
-	  } elseif ($AnsibleTags) {
-		array_push($Filters, "labels__name__in=".implode(',',$AnsibleTags));
-	  }
-	  if ($Filters) {
-		$filter = combineFilters($Filters);
-	  }
-	  if ($id) {
-		$Result = $this->QueryAnsible("get", "job_templates/".$id."/");
-	  } else if (isset($filter)) {
-		$Result = $this->QueryAnsible("get", "job_templates/?".$filter);
-	  } else {
-		$Result = $this->QueryAnsible("get", "job_templates");
-	  }
-	  if ($Result) {
-		$this->api->setAPIResponseData($Result);
-		return $Result;
-	  }
-	}
-	
-	public function GetAnsibleJobs($id = null) {
-	  $Result = $this->QueryAnsible("get", "jobs");
-	  if ($Result) {
-		$this->api->setAPIResponseData($Result);
-		return $Result;
-	  } else {
-		$this->api->setAPIResponse('Warning','No results returned from the API');
-	  }
-	}
-	
-	public function SubmitAnsibleJob($id,$data) {
-	  $Result = $this->QueryAnsible("post", "job_templates/".$id."/launch/", $data);
-	  if ($Result) {
-		$this->api->setAPIResponseData($Result);
-		return $Result;
-	  } else {
-		$this->api->setAPIResponse('Warning','No results returned from the API');
-	  }
-	}
+            $url = $this->getApiEndpoint($Uri);
+            error_log("Making request to URL: " . $url);
+            error_log("Headers: " . json_encode($headers));
+            if ($Data) {
+                error_log("Request Data: " . json_encode($Data));
+            }
+            
+            if (in_array($Method, ["GET", "get"])) {
+                $Result = $this->api->query->$Method($url, $headers);
+            } else {
+                $Result = $this->api->query->$Method($url, $Data, $headers);
+            }
 
-	public function GetAnsibleLabels() {
-		$Result = $this->QueryAnsible("get", "labels/?order_by=name");
-		if ($Result) {
-			$this->api->setAPIResponseData($Result);
-			return $Result;
-		} else {
-			$this->api->setAPIResponse('Warning','No results returned from the API');
-		}
-	}
+            error_log("API Response: " . json_encode($Result));
+
+            if (isset($Result->status_code) && $Result->status_code >= 400) {
+                throw new Exception("API request failed with status code: " . $Result->status_code . ", Response: " . json_encode($Result));
+            }
+
+            return $Result;
+
+        } catch (Exception $e) {
+            error_log("TrendVisionOne API Error: " . $e->getMessage());
+            $this->api->setAPIResponse('Error', $e->getMessage());
+            return false;
+        }
+    }
+
+    //// Everything after this line (221) is features and is permitted to be edited to build out the plugin features
+
+    public function getFullApiUrl() {
+        try {
+            $url = $this->getApiEndpoint("endpointSecurity/endpoints");
+            print_r($url);
+            $this->api->setAPIResponse('Success', 'API URL Retrieved');
+            $this->api->setAPIResponseData(['url' => $url]);
+            return true;
+        } catch (Exception $e) {
+            $this->api->setAPIResponse('Error', $e->getMessage());
+            return false;
+        }
+    }
+
+    public function GetVulnerableDevices() {
+        try {
+            if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
+                throw new Exception("Access Denied - Missing READ permissions");
+            }
+
+            // Make API request
+            $result = $this->makeApiRequest("GET", "asrm/vulnerableDevices");
+            
+            if ($result === false) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve vulnerable devices - API request failed');
+                return false;
+            }
+
+            // Just pass through the raw response
+            $this->api->setAPIResponse('Success', 'Retrieved raw device data');
+            $this->api->setAPIResponseData($result);
+            return true;
+
+        } catch (Exception $e) {
+            error_log("Error in GetVulnerableDevices: " . $e->getMessage());
+            $this->api->setAPIResponse('Error', $e->getMessage());
+            return false;
+        }
+    }
+
+    public function GetFullDesktops() {
+        try {
+            if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
+                throw new Exception("Access Denied - Missing READ permissions");
+            }
+
+            // Set query parameters for 1000 records
+            $params = [
+                'top' => 1000,
+                'skip' => 0
+            ];
+
+            // Make API request with parameters
+            $result = $this->makeApiRequest("GET", "endpointSecurity/endpoints?" . http_build_query($params));
+            
+            if ($result === false) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve endpoints - API request failed');
+                return false;
+            }
+
+            if (empty($result)) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve endpoints - Empty response');
+                return false;
+            }
+
+            // Debug the response structure
+            error_log("API Response structure: " . print_r($result, true));
+            
+            // Check if we have a valid response with totalCount
+            if (isset($result->totalCount)) {
+                $responseData = [
+                    'totalCount' => $result->totalCount,
+                    'count' => $result->count,
+                    'items' => $result->items ?? []
+                ];
+                $this->api->setAPIResponse('Success', 'Retrieved ' . ($result->count) . ' endpoints');
+                $this->api->setAPIResponseData($responseData);
+            } else {
+                // Handle direct array response
+                $items = json_decode(json_encode($result), true);
+                if (is_array($items)) {
+                    $responseData = [
+                        'totalCount' => count($items),
+                        'count' => count($items),
+                        'items' => $items
+                    ];
+                    $this->api->setAPIResponse('Success', 'Retrieved ' . count($items) . ' endpoints');
+                    $this->api->setAPIResponseData($responseData);
+                } else {
+                    error_log("Unexpected response format: " . gettype($result));
+                    $this->api->setAPIResponse('Error', 'Unexpected API response structure');
+                    return false;
+                }
+            }
+            
+            return true;
+        } catch (Exception $e) {
+            error_log("Error in GetFullDesktops: " . $e->getMessage());
+            $this->api->setAPIResponse('Error', $e->getMessage());
+            return false;
+        }
+    }
+
+    public function GetEndpointDetails($endpointId = null) {
+        try {
+            if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
+                throw new Exception("Access Denied - Missing READ permissions");
+            }
+
+            // Check if endpoint ID is provided
+            if (empty($endpointId)) {
+                throw new Exception("Endpoint ID is required");
+            }
+
+            $endpoint = "endpointSecurity/endpoints/" . urlencode($endpointId);
+            $result = $this->makeApiRequest("GET", $endpoint);
+            
+            if ($result === false) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve endpoint details - API request failed');
+                return false;
+            }
+
+            if (empty($result)) {
+                $this->api->setAPIResponse('Error', 'Failed to retrieve endpoint details - Empty response');
+                return false;
+            }
+
+            // Debug the response structure
+            error_log("API Response structure for endpoint $endpointId: " . print_r($result, true));
+            
+            // Convert response to array if it's an object
+            $details = json_decode(json_encode($result), true);
+            
+            if (is_array($details)) {
+                $this->api->setAPIResponse('Success', 'Retrieved endpoint details');
+                $this->api->setAPIResponseData($details);
+            } else {
+                error_log("Unexpected response format: " . gettype($result));
+                $this->api->setAPIResponse('Error', 'Unexpected API response structure');
+                return false;
+            }
+            
+            return true;
+        } catch (Exception $e) {
+            error_log("Error in GetEndpointDetails: " . $e->getMessage());
+            $this->api->setAPIResponse('Error', $e->getMessage());
+            return false;
+        }
+    }
+
+    public function verifyDatabaseStructure() {
+        try {
+            $tables = [
+                'devices', 'device_ips', 'cve_records', 'device_cve_mapping',
+                'affected_components', 'linux_remediations', 'misc'
+            ];
+            
+            foreach ($tables as $table) {
+                $query = $this->sql->query("PRAGMA table_info(" . $table . ")");
+                $columns = $query->fetchAll(PDO::FETCH_ASSOC);
+                
+                error_log("[TrendVisionOne] Table '{$table}' structure:");
+                foreach ($columns as $col) {
+                    error_log("  - {$col['name']} ({$col['type']})");
+                }
+                
+                // Check if table exists by trying to count rows
+                $count = $this->sql->query("SELECT COUNT(*) as count FROM " . $table)->fetch(PDO::FETCH_ASSOC);
+                error_log("  Total rows: {$count['count']}");
+                error_log("-------------------");
+            }
+            
+            $this->api->setAPIResponse('Success', 'Database structure verified');
+            return true;
+        } catch (PDOException $e) {
+            error_log("[TrendVisionOne] Database verification error: " . $e->getMessage());
+            $this->api->setAPIResponse('Error', 'Failed to verify database structure');
+            return false;
+        }
+    }
+
+    public function syncVulnerabilityData() {
+        try {
+            if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
+                throw new Exception("Access Denied - Missing READ permissions");
+            }
+
+            // Check last sync time
+            $stmt = $this->sql->prepare("SELECT value FROM misc WHERE key = 'last_sync'");
+            $stmt->execute();
+            $lastSync = $stmt->fetchColumn();
+            
+            if ($lastSync) {
+                $lastSyncTime = strtotime($lastSync);
+                $timeSinceLastSync = time() - $lastSyncTime;
+                if ($timeSinceLastSync < 3600) { // 3600 seconds = 60 minutes
+                    $this->api->setAPIResponse('Warning', 'Data was synced less than 60 minutes ago. Next sync available in ' . (3600 - $timeSinceLastSync) . ' seconds.');
+                    return false;
+                }
+            }
+
+            // Start transaction
+            $this->sql->beginTransaction();
+
+            try {
+                // Get data from API
+                if (!$this->GetVulnerableDevices()) {
+                    throw new Exception("Failed to retrieve vulnerability data from API");
+                }
+
+                $data = $GLOBALS['api'];
+                if (empty($data) || empty($data['data']) || empty($data['data']['items'])) {
+                    throw new Exception("No vulnerability data received from API");
+                }
+
+                // Process each device
+                foreach ($data['data']['items'] as $device) {
+                    // Insert device
+                    $stmt = $this->sql->prepare("INSERT OR REPLACE INTO devices (id, device_name, criticality, created_at) VALUES (?, ?, ?, datetime('now'))");
+                    $stmt->execute([$device['id'], $device['deviceName'], $device['criticality']]);
+
+                    // Insert IPs
+                    if (!empty($device['ip'])) {
+                        $stmt = $this->sql->prepare("INSERT OR REPLACE INTO device_ips (device_id, ip_address, created_at) VALUES (?, ?, datetime('now'))");
+                        foreach ($device['ip'] as $ip) {
+                            $stmt->execute([$device['id'], $ip]);
+                        }
+                    }
+
+                    // Process CVEs
+                    if (!empty($device['cveRecords'])) {
+                        foreach ($device['cveRecords'] as $cve) {
+                            // Insert CVE record
+                            $stmt = $this->sql->prepare("INSERT OR REPLACE INTO cve_records 
+                                (id, cvss_score, event_risk_level, global_exploit_activity_level, exploit_attempt_count, mitigation_status, published_datetime, created_at) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))");
+                            $stmt->execute([
+                                $cve['id'],
+                                $cve['cvssScore'],
+                                $cve['eventRiskLevel'],
+                                $cve['globalExploitActivityLevel'],
+                                $cve['exploitAttemptCount'],
+                                $cve['mitigationStatus'],
+                                $cve['publishedDateTime']
+                            ]);
+
+                            // Map device to CVE
+                            $stmt = $this->sql->prepare("INSERT OR REPLACE INTO device_cve_mapping (device_id, cve_id, created_at) VALUES (?, ?, datetime('now'))");
+                            $stmt->execute([$device['id'], $cve['id']]);
+
+                            // Insert affected components
+                            if (!empty($cve['affectedComponents'])) {
+                                $stmt = $this->sql->prepare("INSERT OR REPLACE INTO affected_components (cve_id, component_name, created_at) VALUES (?, ?, datetime('now'))");
+                                foreach ($cve['affectedComponents'] as $component) {
+                                    $stmt->execute([$cve['id'], $component]);
+                                }
+                            }
+
+                            // Insert Linux remediations if they exist
+                            if (!empty($cve['mitigationOption']) && !empty($cve['mitigationOption']['linuxRemediations'])) {
+                                $stmt = $this->sql->prepare("INSERT OR REPLACE INTO linux_remediations 
+                                    (cve_id, package_name, minimum_patched_version, product_distribution, release_date, security_advisory_id, security_advisory_link, created_at) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))");
+                                foreach ($cve['mitigationOption']['linuxRemediations'] as $remediation) {
+                                    $stmt->execute([
+                                        $cve['id'],
+                                        $remediation['packageName'],
+                                        $remediation['minimumPatchedPackageVersion'],
+                                        $remediation['productDistribution'],
+                                        $remediation['releaseDate'],
+                                        $remediation['securityAdvisoryId'],
+                                        $remediation['securityAdvisoryLink']
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Update last sync time
+                $stmt = $this->sql->prepare("UPDATE misc SET value = datetime('now'), updated_at = datetime('now') WHERE key = 'last_sync'");
+                $stmt->execute();
+
+                // Commit transaction
+                $this->sql->commit();
+                error_log("[TrendVisionOne] Successfully synced vulnerability data");
+                $this->api->setAPIResponse('Success', 'Vulnerability data synced successfully');
+                return true;
+
+            } catch (Exception $e) {
+                // Rollback on error
+                $this->sql->rollBack();
+                throw $e;
+            }
+
+        } catch (Exception $e) {
+            error_log("[TrendVisionOne] Sync error: " . $e->getMessage());
+            $this->api->setAPIResponse('Error', $e->getMessage());
+            return false;
+        }
+    }
 }
