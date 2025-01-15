@@ -113,32 +113,32 @@ if ($TrendVisionOnePlugin->auth->checkAccess($pluginConfig['ACL-READ'] ?? "ACL-R
                     <h6>Endpoint Information</h6>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <p><strong>Name:</strong> <span id="modal-endpoint-name"></span></p>
-                            <p><strong>OS:</strong> <span id="modal-endpoint-os"></span></p>
+                            <p><strong>Name:</strong> <span id="modalEndpointName"></span></p>
+                            <p><strong>OS:</strong> <span id="modalOsName"></span> <span id="modalOsVersion"></span></p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>IP:</strong> <span id="modal-endpoint-ip"></span></p>
-                            <p><strong>Last Connected:</strong> <span id="modal-endpoint-last-connected"></span></p>
+                            <p><strong>IP:</strong> <span id="modalIp"></span></p>
+                            <p><strong>Last Connected:</strong> <span id="modalLastSeen"></span></p>
                         </div>
                     </div>
                     
                     <h6>Vulnerability Information</h6>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <p><strong>ID:</strong> <span id="modal-vuln-id"></span></p>
-                            <p><strong>Risk Level:</strong> <span id="modal-risk-level"></span></p>
-                            <p><strong>CVSS Score:</strong> <span id="modal-cvss-score"></span></p>
+                            <p><strong>ID:</strong> <span id="modalVulnerabilityId"></span></p>
+                            <p><strong>CVE ID:</strong> <span id="modalCveId"></span></p>
+                            <p><strong>Risk Level:</strong> <span id="modalRiskLevel"></span></p>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>Product:</strong> <span id="modal-product"></span></p>
-                            <p><strong>Version:</strong> <span id="modal-version"></span></p>
-                            <p><strong>Last Detected:</strong> <span id="modal-last-detected"></span></p>
+                            <p><strong>CVSS Score:</strong> <span id="modalCvssScore"></span></p>
+                            <p><strong>Product:</strong> <span id="modalProductName"></span> <span id="modalProductVersion"></span></p>
+                            <p><strong>Last Detected:</strong> <span id="modalLastDetected"></span></p>
                         </div>
                     </div>
                     
                     <h6>Description</h6>
                     <div class="mb-3">
-                        <p id="modal-description"></p>
+                        <p id="modalDescription"></p>
                     </div>
                 </div>
             </div>
@@ -150,154 +150,101 @@ if ($TrendVisionOnePlugin->auth->checkAccess($pluginConfig['ACL-READ'] ?? "ACL-R
 </div>
 
 <script>
-// Initialize the vulnerabilities table
-$(function() {
-    $("#vulnerabilitiesTable").bootstrapTable({
-        url: "/api/plugin/TrendVisionOne/getvulnerabledevices",
-        dataField: "items",
-        sortable: true,
+$(document).ready(function() {
+    // Initialize Bootstrap Table
+    $('#vulnerabilitiesTable').bootstrapTable({
+        url: '/api/plugin/TrendVisionOne/vulnerabilities',
         pagination: true,
         search: true,
-        showExport: true,
         showRefresh: true,
-        exportTypes: ["json", "csv", "excel"],
-        showColumns: true,
-        filterControl: true,
-        filterControlVisible: false,
-        showFilterControlSwitch: true,
-        pageSize: 25,
+        pageSize: 10,
         columns: [{
-            field: "state",
-            checkbox: true
+            field: 'endpointName',
+            title: 'Endpoint Name',
+            sortable: true
         }, {
-            field: "endpointName",
-            title: "Endpoint Name",
+            field: 'vulnerabilityId',
+            title: 'Vulnerability ID',
+            sortable: true
+        }, {
+            field: 'cveId',
+            title: 'CVE ID',
+            sortable: true
+        }, {
+            field: 'description',
+            title: 'Description'
+        }, {
+            field: 'riskLevel',
+            title: 'Risk Level',
             sortable: true,
-            filterControl: "input"
-        }, {
-            field: "riskLevel",
-            title: "Risk Level",
-            sortable: true,
-            filterControl: "select",
-            formatter: riskLevelFormatter
-        }, {
-            field: "cvssScore",
-            title: "CVSS Score",
-            sortable: true,
-            filterControl: "input"
-        }, {
-            field: "vulnerabilityId",
-            title: "Vulnerability ID",
-            sortable: true,
-            filterControl: "input"
-        }, {
-            field: "productName",
-            title: "Product",
-            sortable: true,
-            filterControl: "input",
-            formatter: productFormatter
-        }, {
-            field: "lastDetected",
-            title: "Last Detected",
-            sortable: true,
-            filterControl: "input",
-            formatter: dateFormatter
-        }, {
-            field: "actions",
-            title: "Actions",
-            formatter: actionFormatter,
-            events: window.actionEvents
-        }],
-        onLoadSuccess: function(data) {
-            if (data.stats) {
-                $('#totalVulnerabilities').text(data.stats.total || 0);
-                $('#highRiskCount').text(data.stats.high || 0);
-                $('#mediumRiskCount').text(data.stats.medium || 0);
-                $('#lowRiskCount').text(data.stats.low || 0);
+            formatter: function(value) {
+                let badgeClass = 'badge-secondary';
+                if (value === 'HIGH') badgeClass = 'badge-danger';
+                else if (value === 'MEDIUM') badgeClass = 'badge-warning';
+                else if (value === 'LOW') badgeClass = 'badge-success';
+                return '<span class="badge ' + badgeClass + '">' + value + '</span>';
             }
-        }
+        }, {
+            field: 'cvssScore',
+            title: 'CVSS Score',
+            sortable: true
+        }, {
+            field: 'lastDetected',
+            title: 'Last Detected',
+            sortable: true,
+            formatter: function(value) {
+                return moment(value).format('YYYY-MM-DD HH:mm:ss');
+            }
+        }, {
+            field: 'operate',
+            title: 'Actions',
+            align: 'center',
+            formatter: function(value, row) {
+                return [
+                    '<button class="btn btn-sm btn-info view-details" title="View Details">',
+                    '<i class="fas fa-eye"></i>',
+                    '</button>'
+                ].join('');
+            },
+            events: {
+                'click .view-details': function(e, value, row) {
+                    showVulnerabilityDetails(row);
+                }
+            }
+        }]
     });
 
-    // Refresh data every 5 minutes
-    setInterval(function() {
-        $("#vulnerabilitiesTable").bootstrapTable('refresh');
-    }, 300000);
-});
-
-// Formatters
-function riskLevelFormatter(value) {
-    const riskClass = {
-        'HIGH': 'risk-high',
-        'MEDIUM': 'risk-medium',
-        'LOW': 'risk-low'
-    }[value] || '';
-    return value ? `<span class="${riskClass}">${value}</span>` : '-';
-}
-
-function productFormatter(value, row) {
-    return `${value || ''} ${row.productVersion || ''}`.trim() || '-';
-}
-
-function dateFormatter(value) {
-    if (!value) return '-';
-    return new Date(value).toLocaleString('en-GB');
-}
-
-function actionFormatter() {
-    return '<button type="button" class="btn btn-sm btn-primary view-details">Details</button>';
-}
-
-// Event handlers
-window.actionEvents = {
-    'click .view-details': function (e, value, row) {
-        // Get modal element
-        const modalEl = document.getElementById('vulnerabilityDetailsModal');
-        if (!modalEl) {
-            console.error('Modal element not found');
-            return;
-        }
-
-        // Initialize modal if needed
-        let modal = bootstrap.Modal.getInstance(modalEl);
-        if (!modal) {
-            modal = new bootstrap.Modal(modalEl);
-        }
-
-        // Fetch endpoint details
-        $.ajax({
-            url: '/api/plugin/TrendVisionOne/getendpointdetails',
-            method: 'GET',
-            data: { endpointId: row.agentGuid },
-            success: function(response) {
-                if (response.result === 'Success' && response.data) {
-                    const endpoint = response.data;
-                    const vulnerability = endpoint.vulnerabilities.find(v => v.id === row.vulnerabilityId) || {};
-                    
-                    // Update modal content
-                    $('#modal-endpoint-name').text(endpoint.endpointName || '-');
-                    $('#modal-endpoint-os').text(endpoint.osName || '-');
-                    $('#modal-endpoint-ip').text(endpoint.ip || '-');
-                    $('#modal-endpoint-last-connected').text(endpoint.lastSeen ? new Date(endpoint.lastSeen).toLocaleString('en-GB') : '-');
-                    
-                    $('#modal-vuln-id').text(vulnerability.id || '-');
-                    $('#modal-risk-level').html(`<span class="risk-${vulnerability.riskLevel?.toLowerCase()}">${vulnerability.riskLevel || '-'}</span>`);
-                    $('#modal-cvss-score').text(vulnerability.cvssScore || '-');
-                    $('#modal-product').text(vulnerability.productName || '-');
-                    $('#modal-version').text(vulnerability.productVersion || '-');
-                    $('#modal-last-detected').text(vulnerability.lastDetected ? new Date(vulnerability.lastDetected).toLocaleString('en-GB') : '-');
-                    $('#modal-description').text(vulnerability.description || 'No description available');
-
-                    // Show modal
-                    modal.show();
-                }
-            },
-            error: function() {
-                $('.modal-body .vulnerability-info').html(`
-                    <div class="alert alert-danger">Failed to load vulnerability details.</div>
-                `);
-                modal.show();
+    // Load statistics
+    function loadStats() {
+        $.get('/api/plugin/TrendVisionOne/vulnerabilities', function(response) {
+            if (response.success && response.data.stats) {
+                $('#totalVulnerabilities').text(response.data.stats.total);
+                $('#highRiskCount').text(response.data.stats.high);
+                $('#mediumRiskCount').text(response.data.stats.medium);
+                $('#lowRiskCount').text(response.data.stats.low);
             }
         });
     }
-};
+
+    loadStats();
+});
+
+function showVulnerabilityDetails(vulnerability) {
+    // Populate modal with vulnerability details
+    $('#modalEndpointName').text(vulnerability.endpointName);
+    $('#modalVulnerabilityId').text(vulnerability.vulnerabilityId);
+    $('#modalCveId').text(vulnerability.cveId);
+    $('#modalDescription').text(vulnerability.description);
+    $('#modalRiskLevel').text(vulnerability.riskLevel);
+    $('#modalCvssScore').text(vulnerability.cvssScore);
+    $('#modalProductName').text(vulnerability.productName);
+    $('#modalProductVersion').text(vulnerability.productVersion);
+    $('#modalLastDetected').text(moment(vulnerability.lastDetected).format('YYYY-MM-DD HH:mm:ss'));
+    $('#modalOsName').text(vulnerability.osName);
+    $('#modalOsVersion').text(vulnerability.osVersion);
+    $('#modalIp').text(vulnerability.ip);
+
+    // Show the modal
+    $('#vulnerabilityDetailsModal').modal('show');
+}
 </script>

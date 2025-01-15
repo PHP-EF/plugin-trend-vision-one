@@ -374,6 +374,66 @@ class TrendVisionOne extends phpef {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    // Get All Vulnerabilities with Endpoint Details
+    public function getVulnerabilitiesFromDB() {
+        try {
+            $query = "
+                SELECT 
+                    e.agentGuid,
+                    e.endpointName,
+                    e.osName,
+                    e.osVersion,
+                    e.ip,
+                    e.lastSeen,
+                    v.vulnerabilityId,
+                    v.cveId,
+                    v.description,
+                    v.riskLevel,
+                    v.cvssScore,
+                    v.productName,
+                    v.productVersion,
+                    ev.detectedDate as lastDetected
+                FROM endpoints e
+                JOIN endpoint_vulnerabilities ev ON e.id = ev.endpointId
+                JOIN vulnerabilities v ON ev.vulnerabilityId = v.id
+                WHERE ev.status = 'Active'
+                ORDER BY v.riskLevel DESC, v.cvssScore DESC";
+            
+            $stmt = $this->sql->query($query);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Get statistics
+            $stats = [
+                'total' => count($results),
+                'high' => 0,
+                'medium' => 0,
+                'low' => 0
+            ];
+
+            foreach ($results as $row) {
+                switch ($row['riskLevel']) {
+                    case 'HIGH':
+                        $stats['high']++;
+                        break;
+                    case 'MEDIUM':
+                        $stats['medium']++;
+                        break;
+                    case 'LOW':
+                        $stats['low']++;
+                        break;
+                }
+            }
+
+            return [
+                'items' => $results,
+                'stats' => $stats
+            ];
+        } catch (PDOException $e) {
+            $this->api->setAPIResponse("Error", $e->getMessage());
+            return false;
+        }
+    }
+
         //// Everything after this line (188) is features and is permitted to be edited to build out the plugin features
 
     public function getFullApiUrl() {

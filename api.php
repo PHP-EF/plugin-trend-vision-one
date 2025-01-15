@@ -54,3 +54,15 @@ $app->get('/plugin/TrendVisionOne/getvulnerabledevices', function ($request, $re
         ->withHeader('Content-Type', 'application/json;charset=UTF-8')
         ->withStatus($GLOBALS['responseCode']);
 });
+
+// Get Vulnerable Devices from Database
+$app->get('/plugin/TrendVisionOne/vulnerabilities', function ($request, $response, $args) {
+    $TrendVisionOne = new TrendVisionOne();
+    if ($TrendVisionOne->auth->checkAccess($TrendVisionOne->config->get('Plugins','TrendVisionOne')['ACL-READ'] ?? null)) {
+        $TrendVisionOne->api->setAPIResponseData($TrendVisionOne->getVulnerabilitiesFromDB());
+    }
+    $response->getBody()->write(jsonE($GLOBALS['api']));
+    return $response
+        ->withHeader('Content-Type', 'application/json;charset=UTF-8')
+        ->withStatus($GLOBALS['responseCode']);
+});
