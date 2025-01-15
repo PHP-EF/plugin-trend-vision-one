@@ -72,7 +72,8 @@ $pageData = [
             <h5 class="card-title mb-0">Vulnerability Details</h5>
         </div>
         <div class="card-body">
-            <table data-url="/api/plugin/TrendVisionOne/getvulnerabledevices"
+            <table id="vulnerabilitiesTable"
+                   data-url="/api/plugin/TrendVisionOne/getvulnerabledevices"
                    data-data-field="items"
                    data-toggle="table"
                    data-search="true"
@@ -86,8 +87,7 @@ $pageData = [
                    data-sort-order="desc"
                    data-show-columns="true"
                    data-page-size="25"
-                   class="table table-striped"
-                   id="vulnerabilitiesTable">
+                   class="table table-striped">
                 <thead>
                     <tr>
                         <th data-field="state" data-checkbox="true"></th>
@@ -106,11 +106,11 @@ $pageData = [
 </div>
 
 <!-- Details Modal -->
-<div class="modal fade" id="vulnerabilityDetailsModal" tabindex="-1" aria-labelledby="vulnerabilityDetailsModalLabel" aria-hidden="true">
+<div class="modal" id="vulnerabilityDetailsModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="vulnerabilityDetailsModalLabel">Vulnerability Details</h5>
+                <h5 class="modal-title">Vulnerability Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -175,15 +175,28 @@ function dateFormatter(value) {
 }
 
 function actionFormatter() {
-    return '<button class="btn btn-sm btn-primary view-details">Details</button>';
+    return '<button type="button" class="btn btn-sm btn-primary view-details">Details</button>';
 }
 
 // Event handlers
 window.actionEvents = {
     'click .view-details': function (e, value, row) {
-        // Show modal
-        var modal = new bootstrap.Modal(document.getElementById('vulnerabilityDetailsModal'));
-        modal.show();
+        // Get modal element
+        const modalEl = document.getElementById('vulnerabilityDetailsModal');
+        if (!modalEl) {
+            console.error('Modal element not found');
+            return;
+        }
+
+        // Initialize modal if needed
+        let modal = bootstrap.Modal.getInstance(modalEl);
+        if (!modal) {
+            modal = new bootstrap.Modal(modalEl, {
+                backdrop: true,
+                keyboard: true,
+                focus: true
+            });
+        }
 
         // Fetch endpoint details
         $.ajax({
@@ -208,12 +221,16 @@ window.actionEvents = {
                     $('#modal-version').text(vulnerability.productVersion || '-');
                     $('#modal-last-detected').text(vulnerability.lastDetected ? new Date(vulnerability.lastDetected).toLocaleString('en-GB') : '-');
                     $('#modal-description').text(vulnerability.description || 'No description available');
+
+                    // Show modal
+                    modal.show();
                 }
             },
             error: function() {
                 $('.modal-body .vulnerability-info').html(`
                     <div class="alert alert-danger">Failed to load vulnerability details.</div>
                 `);
+                modal.show();
             }
         });
     }

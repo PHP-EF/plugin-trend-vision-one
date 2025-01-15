@@ -19,8 +19,7 @@ $GLOBALS['plugins']['TrendVisionOne'] = [ // Plugin Name
             'https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.css'
         ],
         'js' => [
-            'https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.js',
-            'https://unpkg.com/bootstrap-table@1.20.2/dist/extensions/filter-control/bootstrap-table-filter-control.min.js'
+            'https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.js'
         ]
     ]
 ];
