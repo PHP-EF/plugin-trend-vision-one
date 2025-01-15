@@ -709,22 +709,30 @@ let vulnerabilityData = [];
 // Initialize Everything
 async function initialize() {
     try {
-        console.log('Starting initialization...');
+        console.log('Starting initialization sequence...');
         
-        // Step 1: Initialize modal
+        // Step 1: Wait for DOM to be fully loaded
+        if (document.readyState !== 'complete') {
+            await new Promise(resolve => {
+                window.addEventListener('load', resolve);
+            });
+        }
+        console.log('DOM fully loaded');
+
+        // Step 2: Initialize modal
         await initializeModal();
         console.log('Modal initialized');
 
-        // Step 2: Set up event listeners
+        // Step 3: Set up event listeners
         await setupEventListeners();
         console.log('Event listeners set up');
 
-        // Step 3: Load initial data
+        // Step 4: Load initial data
         const data = await loadVulnerabilityData();
         if (!data) throw new Error('Failed to load initial data');
         console.log('Initial data loaded');
 
-        // Step 4: Set up refresh interval
+        // Step 5: Set up refresh interval
         setInterval(() => {
             loadVulnerabilityData().catch(error => {
                 console.error('Error in refresh interval:', error);
@@ -732,8 +740,10 @@ async function initialize() {
         }, 300000); // Refresh every 5 minutes
         console.log('Refresh interval set up');
 
+        console.log('Initialization sequence completed successfully');
     } catch (error) {
         console.error('Initialization error:', error);
+        throw error; // Re-throw to be caught by the document.ready handler
     }
 }
 
@@ -745,43 +755,66 @@ $(document).ready(() => {
     });
 });
 
-// Function to initialize the modal
+// Initialize modal
 async function initializeModal() {
     return new Promise((resolve, reject) => {
         const maxAttempts = 10;
         let attempts = 0;
 
         function tryInitialize() {
+            if (!document.getElementById('vulnerability-details-modal')) {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    console.error('Modal element not found after', attempts, 'attempts');
+                    reject(new Error('Modal element not found'));
+                } else {
+                    console.log('Modal element not found, retrying in 100ms (attempt', attempts, 'of', maxAttempts, ')');
+                    setTimeout(tryInitialize, 100);
+                }
+                return;
+            }
+
+            if (typeof bootstrap === 'undefined') {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    console.error('Bootstrap not loaded after', attempts, 'attempts');
+                    reject(new Error('Bootstrap not loaded'));
+                } else {
+                    console.log('Bootstrap not loaded, retrying in 100ms (attempt', attempts, 'of', maxAttempts, ')');
+                    setTimeout(tryInitialize, 100);
+                }
+                return;
+            }
+
             try {
                 const modalElement = document.getElementById('vulnerability-details-modal');
-                if (!modalElement) {
-                    throw new Error('Modal element not found');
-                }
-                if (!window.bootstrap) {
-                    throw new Error('Bootstrap not loaded');
-                }
                 
                 // Create modal instance
                 vulnerabilityModal = new bootstrap.Modal(modalElement, {
                     keyboard: true,
-                    backdrop: true,
+                    backdrop: 'static',
                     focus: true
                 });
-                
+
+                // Add event listeners after successful initialization
+                modalElement.addEventListener('shown.bs.modal', function () {
+                    console.log('Modal shown successfully');
+                });
+
+                modalElement.addEventListener('hidden.bs.modal', function () {
+                    console.log('Modal hidden successfully');
+                });
+
                 console.log('Modal initialized successfully');
                 resolve(vulnerabilityModal);
             } catch (error) {
-                attempts++;
-                if (attempts >= maxAttempts) {
-                    console.error('Failed to initialize modal after', attempts, 'attempts:', error);
-                    reject(error);
-                } else {
-                    console.log('Retrying modal initialization, attempt', attempts);
-                    setTimeout(tryInitialize, 100);
-                }
+                console.error('Error during modal initialization:', error);
+                reject(error);
             }
         }
 
+        // Start initialization process
+        console.log('Starting modal initialization...');
         tryInitialize();
     });
 }
