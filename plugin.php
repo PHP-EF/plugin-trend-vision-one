@@ -6,14 +6,23 @@
 
 // PLUGIN INFORMATION - This should match what is in plugin.json
 $GLOBALS['plugins']['TrendVisionOne'] = [ // Plugin Name
-	'name' => 'TrendVisionOne', // Plugin Name
-	'author' => 'TinyTechLabUK', // Who wrote the plugin
-	'category' => 'Anti Virus', // One to Two Word Description
-	'link' => 'https://github.com/PHP-EF/plugin-trend-vision-one', // Link to plugin info
-	'version' => '1.0.0', // SemVer of plugin
-	'image' => 'logo.png', // 1:1 non transparent image for plugin
-	'settings' => true, // does plugin need a settings modal?
-	'api' => '/api/plugin/TrendVisionOne/settings', // api route for settings page, or null if no settings page
+    'name' => 'TrendVisionOne', // Plugin Name
+    'author' => 'TinyTechLabUK', // Who wrote the plugin
+    'category' => 'Anti Virus', // One to Two Word Description
+    'link' => 'https://github.com/PHP-EF/plugin-trend-vision-one', // Link to plugin info
+    'version' => '1.0.0', // SemVer of plugin
+    'image' => 'logo.png', // 1:1 non transparent image for plugin
+    'settings' => true, // does plugin need a settings modal?
+    'api' => '/api/plugin/TrendVisionOne/settings', // api route for settings page, or null if no settings page
+    'dependencies' => [
+        'css' => [
+            'https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.css'
+        ],
+        'js' => [
+            'https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.js',
+            'https://unpkg.com/bootstrap-table@1.20.2/dist/extensions/filter-control/bootstrap-table-filter-control.min.js'
+        ]
+    ]
 ];
 
 class TrendVisionOne extends phpef {
