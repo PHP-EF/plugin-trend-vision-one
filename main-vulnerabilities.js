@@ -717,7 +717,11 @@ function initializeModal() {
             return;
         }
 
-        vulnerabilityModal = new bootstrap.Modal(modalElement);
+        // Create modal instance with specific options
+        vulnerabilityModal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: true
+        });
     } catch (error) {
         console.error('Error initializing modal:', error);
     }
@@ -725,28 +729,36 @@ function initializeModal() {
 
 // Function to show the modal
 function showModal() {
-    if (!vulnerabilityModal) {
-        initializeModal();
-    }
-    
-    if (vulnerabilityModal) {
-        vulnerabilityModal.show();
-    } else {
-        console.error('Modal could not be initialized');
+    try {
+        if (!vulnerabilityModal) {
+            initializeModal();
+        }
+        
+        if (vulnerabilityModal) {
+            vulnerabilityModal.show();
+        } else {
+            console.error('Modal could not be initialized');
+        }
+    } catch (error) {
+        console.error('Error showing modal:', error);
     }
 }
 
 // Function to hide the modal
 function hideModal() {
-    if (vulnerabilityModal) {
-        vulnerabilityModal.hide();
+    try {
+        if (vulnerabilityModal) {
+            vulnerabilityModal.hide();
+        }
+    } catch (error) {
+        console.error('Error hiding modal:', error);
     }
 }
 
 // Wait for DOM and Bootstrap to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the modal
-    initializeModal();
+    setTimeout(initializeModal, 100); // Small delay to ensure Bootstrap is loaded
     
     // Load initial data
     loadVulnerabilityData();
