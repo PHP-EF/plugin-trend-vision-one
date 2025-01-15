@@ -381,13 +381,14 @@ $(document).ready(function() {
             url: '/api/plugin/TrendVisionOne/getfulldesktops?top=1000',
             method: 'GET',
             success: function(response) {
-                if (!response || !Array.isArray(response)) {
+                if (!response || response.result !== 'Success' || !response.data || !response.data.items) {
                     console.error('Invalid response format:', response);
                     return;
                 }
 
-                populateEndpointGroupFilter(response);
-                updateTableContent(response);
+                const items = response.data.items;
+                populateEndpointGroupFilter(items);
+                updateTableContent(items);
             },
             error: function(xhr, status, error) {
                 console.error('Error fetching endpoints:', error);
