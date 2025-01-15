@@ -5,6 +5,16 @@ if ($TrendVisionOnePlugin->auth->checkAccess($pluginConfig['ACL-READ'] ?? "ACL-R
     $TrendVisionOnePlugin->api->setAPIResponse('Error', 'Unauthorized', 401);
     return false;
 }
+
+// Check if we need to sync data
+$lastSync = intval($TrendVisionOnePlugin->getLastSync());
+$syncInterval = $TrendVisionOnePlugin->getSyncInterval();
+$currentTime = time();
+
+if (($currentTime - $lastSync) >= $syncInterval) {
+    // Sync data from Vision One API
+    $TrendVisionOnePlugin->getVulnerableDevices();
+}
 ?>
 
 <!-- Bootstrap Table Dependencies -->
@@ -157,11 +167,16 @@ $(document).ready(function() {
         pagination: true,
         search: true,
         showRefresh: true,
+        showExport: true,
+        exportTypes: ['csv', 'excel', 'pdf'],
         pageSize: 10,
         columns: [{
             field: 'endpointName',
             title: 'Endpoint Name',
-            sortable: true
+            sortable: true,
+            formatter: function(value, row) {
+                return value || row.hostname || row.displayName || 'N/A';
+            }
         }, {
             field: 'vulnerabilityId',
             title: 'Vulnerability ID',
@@ -188,6 +203,15 @@ $(document).ready(function() {
             field: 'cvssScore',
             title: 'CVSS Score',
             sortable: true
+        }, {
+            field: 'productName',
+            title: 'Product',
+            formatter: function(value, row) {
+                if (row.productVersion) {
+                    return value + ' ' + row.productVersion;
+                }
+                return value;
+            }
         }, {
             field: 'lastDetected',
             title: 'Last Detected',
@@ -227,22 +251,29 @@ $(document).ready(function() {
     }
 
     loadStats();
+    
+    // Refresh data every 5 minutes
+    setInterval(function() {
+        $('#vulnerabilitiesTable').bootstrapTable('refresh');
+        loadStats();
+    }, 300000);
 });
 
 function showVulnerabilityDetails(vulnerability) {
     // Populate modal with vulnerability details
-    $('#modalEndpointName').text(vulnerability.endpointName);
-    $('#modalVulnerabilityId').text(vulnerability.vulnerabilityId);
-    $('#modalCveId').text(vulnerability.cveId);
-    $('#modalDescription').text(vulnerability.description);
-    $('#modalRiskLevel').text(vulnerability.riskLevel);
-    $('#modalCvssScore').text(vulnerability.cvssScore);
-    $('#modalProductName').text(vulnerability.productName);
-    $('#modalProductVersion').text(vulnerability.productVersion);
+    $('#modalEndpointName').text(vulnerability.endpointName || vulnerability.hostname || vulnerability.displayName || 'N/A');
+    $('#modalVulnerabilityId').text(vulnerability.vulnerabilityId || 'N/A');
+    $('#modalCveId').text(vulnerability.cveId || 'N/A');
+    $('#modalDescription').text(vulnerability.description || 'No description available');
+    $('#modalRiskLevel').html(`<span class="badge badge-${vulnerability.riskLevel.toLowerCase()}">${vulnerability.riskLevel}</span>`);
+    $('#modalCvssScore').text(vulnerability.cvssScore || 'N/A');
+    $('#modalProductName').text(vulnerability.productName || 'N/A');
+    $('#modalProductVersion').text(vulnerability.productVersion || 'N/A');
     $('#modalLastDetected').text(moment(vulnerability.lastDetected).format('YYYY-MM-DD HH:mm:ss'));
-    $('#modalOsName').text(vulnerability.osName);
-    $('#modalOsVersion').text(vulnerability.osVersion);
-    $('#modalIp').text(vulnerability.ip);
+    $('#modalOsName').text(vulnerability.osName || 'N/A');
+    $('#modalOsVersion').text(vulnerability.osVersion || 'N/A');
+    $('#modalIp').text(vulnerability.ip || 'N/A');
+    $('#modalLastSeen').text(moment(vulnerability.lastSeen).format('YYYY-MM-DD HH:mm:ss'));
 
     // Show the modal
     $('#vulnerabilityDetailsModal').modal('show');

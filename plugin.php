@@ -379,12 +379,7 @@ class TrendVisionOne extends phpef {
         try {
             $query = "
                 SELECT 
-                    e.agentGuid,
-                    e.endpointName,
-                    e.osName,
-                    e.osVersion,
-                    e.ip,
-                    e.lastSeen,
+                    v.id,
                     v.vulnerabilityId,
                     v.cveId,
                     v.description,
@@ -392,10 +387,19 @@ class TrendVisionOne extends phpef {
                     v.cvssScore,
                     v.productName,
                     v.productVersion,
-                    ev.detectedDate as lastDetected
-                FROM endpoints e
-                JOIN endpoint_vulnerabilities ev ON e.id = ev.endpointId
-                JOIN vulnerabilities v ON ev.vulnerabilityId = v.id
+                    v.lastDetected,
+                    e.endpointName,
+                    e.displayName,
+                    e.hostname,
+                    e.ip,
+                    e.mac,
+                    e.osName,
+                    e.osVersion,
+                    e.lastSeen,
+                    e.agentGuid
+                FROM vulnerabilities v
+                JOIN endpoint_vulnerabilities ev ON v.id = ev.vulnerabilityId
+                JOIN endpoints e ON ev.endpointId = e.id
                 WHERE ev.status = 'Active'
                 ORDER BY v.riskLevel DESC, v.cvssScore DESC";
             
