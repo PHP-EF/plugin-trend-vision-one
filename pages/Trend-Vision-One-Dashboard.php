@@ -53,7 +53,15 @@
     <!-- Endpoints Table -->
     <div class="card">
         <div class="card-header">
-            <h5 class="card-title mb-0">Trend Vision One Endpoints</h5>
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Trend Vision One Endpoints</h5>
+                <div>
+                    <span id="lastRefreshTime" class="text-muted me-2"></span>
+                    <button id="refreshTable" class="btn btn-primary">
+                        <i class="fas fa-sync"></i> Refresh Data
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -253,23 +261,39 @@ $(document).ready(function() {
     var table = $('#trendEndpointsTable').DataTable({
         "processing": true,
         "serverSide": false,
+        "deferLoading": true,
+        "pageLength": 25,
+        "order": [[0, 'asc']], // Sort by endpoint name by default
+        "dom": "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+               "<'row'<'col-sm-12'tr>>" +
+               "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
         "ajax": {
             "url": "/api/plugin/TrendVisionOne/getfulldesktops",
             "dataSrc": function(json) {
+                if (json.result !== 'Success' || !json.data || !json.data.items) {
+                    console.error('Invalid API response:', json);
+                    return [];
+                }
+                updateLastRefreshTime();
                 return json.data.items.map(function(item) {
                     return [
-                        item.displayName,
-                        item.osName,
-                        item.ipAddresses ? item.ipAddresses.join(', ') : '',
-                        item.endpointGroup,
-                        item.lastConnectedDateTime,
+                        item.displayName || 'Unknown',
+                        item.osName || 'Unknown',
+                        item.ipAddresses ? item.ipAddresses.join(', ') : '-',
+                        item.endpointGroup || 'No Group',
+                        formatDateTime(item.lastConnectedDateTime) || '-',
                         '<span class="badge ' + (item.status === 'on' ? 'bg-success' : 'bg-danger') + '">' + 
                             (item.status === 'on' ? 'Online' : 'Offline') + '</span>',
-                        item.componentVersion,
+                        '<span class="badge ' + (item.componentVersion === 'outdated' ? 'bg-warning' : 'bg-info') + '">' +
+                            (item.componentVersion || 'Unknown') + '</span>',
                         '<button class="btn btn-sm btn-info view-details" data-id="' + item.agentGuid + 
                             '"><i class="fas fa-info-circle"></i> Details</button>'
                     ];
                 });
+            },
+            "error": function(xhr, error, thrown) {
+                console.error('DataTables Ajax Error:', error, thrown);
+                showError('Failed to load endpoint data. Please try refreshing.');
             }
         },
         "columns": [
@@ -280,9 +304,60 @@ $(document).ready(function() {
             { "title": "Last Connected" },
             { "title": "Status" },
             { "title": "Component Version" },
-            { "title": "Actions" }
-        ]
+            { "title": "Actions", "orderable": false }
+        ],
+        "language": {
+            "emptyTable": "No endpoints found",
+            "zeroRecords": "No matching endpoints found",
+            "loadingRecords": "Loading endpoint data..."
+        }
     });
+
+    // Initial load
+    refreshTable();
+
+    // Manual refresh button
+    $('#refreshTable').on('click', refreshTable);
+
+    function refreshTable() {
+        const btn = $('#refreshTable');
+        btn.prop('disabled', true);
+        btn.find('i').addClass('fa-spin');
+        
+        table.ajax.reload(function() {
+            btn.prop('disabled', false);
+            btn.find('i').removeClass('fa-spin');
+        }, false); // false to maintain current paging
+    }
+
+    function updateLastRefreshTime() {
+        const now = new Date();
+        $('#lastRefreshTime').text('Last refreshed: ' + now.toLocaleTimeString());
+    }
+
+    function showError(message) {
+        const alertHtml = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+        $('.card-body').prepend(alertHtml);
+    }
+
+    function formatDateTime(dateTimeString) {
+        if (!dateTimeString) return '-';
+        const date = new Date(dateTimeString);
+        if (isNaN(date.getTime())) return dateTimeString;
+        
+        return date.toLocaleString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    }
 
     // Handle click on details button
     $('#trendEndpointsTable').on('click', '.view-details', function() {

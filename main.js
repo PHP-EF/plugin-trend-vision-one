@@ -279,8 +279,8 @@ $(document).ready(function() {
     // Initial load of endpoints data
     updateEndpointsTable();
     
-    // Refresh data every 30 seconds
-    setInterval(updateEndpointsTable, 30000);
+    // Refresh data every 1 hour
+    setInterval(updateEndpointsTable, 3600000);
 });
 
 // Add custom styles
