@@ -42,79 +42,76 @@ function updateEndpointsTable() {
     $.ajax({
         url: '/api/plugin/TrendVisionOne/getfulldesktops?top=1000',
         method: 'GET',
-        dataType: 'json',
         success: function(response) {
-            console.log('API Response:', response);
+            if (!response || response.result !== 'Success' || !response.data) {
+                console.error('Invalid response format:', response);
+                return;
+            }
+
+            const data = response.data;
+            if (!data.items || !Array.isArray(data.items)) {
+                console.error('Data items is not an array:', data);
+                return;
+            }
+
+            const endpoints = data.items;
             
-            if (response && response.result === 'Success' && response.data && response.data.items && Array.isArray(response.data.items.items)) {
-                const endpoints = response.data.items.items;
-                
-                // Update summary boxes
-                updateEndpointSummary(endpoints);
-                
-                // Update endpoint group filter
-                updateEndpointGroupFilter(endpoints);
-                
-                // Filter endpoints based on selected group
-                const selectedGroup = $('#endpointGroupFilter').val();
-                const filteredEndpoints = selectedGroup ? 
-                    endpoints.filter(endpoint => (endpoint.eppAgent?.endpointGroup || '-') === selectedGroup) : 
-                    endpoints;
-                
-                const tableBody = $('#trendEndpointsTable tbody');
-                tableBody.empty();
+            // Update summary boxes
+            updateEndpointSummary(endpoints);
+            
+            // Update endpoint group filter
+            updateEndpointGroupFilter(endpoints);
+            
+            // Filter endpoints based on selected group
+            const selectedGroup = $('#endpointGroupFilter').val();
+            const filteredEndpoints = selectedGroup ? 
+                endpoints.filter(endpoint => (endpoint.eppAgent?.endpointGroup || '-') === selectedGroup) : 
+                endpoints;
+            
+            const tableBody = $('#trendEndpointsTable tbody');
+            tableBody.empty();
 
-                if (filteredEndpoints.length === 0) {
-                    tableBody.html(`
-                        <tr>
-                            <td colspan="8" class="text-center">
-                                No endpoints available
-                            </td>
-                        </tr>
-                    `);
-                    return;
-                }
-
-                filteredEndpoints.forEach((endpoint, index) => {
-                    const row = $('<tr>');
-                    console.log(`Processing endpoint ${index}:`, endpoint);
-
-                    row.append(`<td>${endpoint.displayName || '-'}</td>`);
-                    row.append(`<td>${endpoint.os?.name || endpoint.osName || '-'}</td>`);
-                    row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
-                    row.append(`<td>${endpoint.eppAgent?.endpointGroup || '-'}</td>`);
-                    row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
-                    
-                    // Status column with badge
-                    const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
-                    const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
-                    row.append(`<td>${statusBadge}</td>`);
-                    
-                    // Component Version column with badge
-                    const componentVersion = endpoint.eppAgent?.componentVersion || '-';
-                    const componentVersionClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
-                    row.append(`<td><span class="badge ${componentVersionClass}">${componentVersion}</span></td>`);
-                    
-                    // Actions column with details button
-                    const detailsButton = `
-                        <button class="btn btn-sm btn-info" 
-                                onclick='showEndpointDetails("${endpoint.agentGuid}")'>
-                            <i class="fas fa-info-circle"></i> Details
-                        </button>`;
-                    row.append(`<td>${detailsButton}</td>`);
-                    
-                    tableBody.append(row);
-                });
-            } else {
-                console.error('Invalid response structure:', response);
-                $('#trendEndpointsTable tbody').html(`
+            if (filteredEndpoints.length === 0) {
+                tableBody.html(`
                     <tr>
                         <td colspan="8" class="text-center">
-                            ${response.message || 'Error loading endpoints'}
+                            No endpoints available
                         </td>
                     </tr>
                 `);
+                return;
             }
+
+            filteredEndpoints.forEach((endpoint, index) => {
+                const row = $('<tr>');
+                console.log(`Processing endpoint ${index}:`, endpoint);
+
+                row.append(`<td>${endpoint.displayName || '-'}</td>`);
+                row.append(`<td>${endpoint.os?.name || endpoint.osName || '-'}</td>`);
+                row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
+                row.append(`<td>${endpoint.eppAgent?.endpointGroup || '-'}</td>`);
+                row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
+                
+                // Status column with badge
+                const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
+                const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
+                row.append(`<td>${statusBadge}</td>`);
+                
+                // Component Version column with badge
+                const componentVersion = endpoint.eppAgent?.componentVersion || '-';
+                const componentVersionClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
+                row.append(`<td><span class="badge ${componentVersionClass}">${componentVersion}</span></td>`);
+                
+                // Actions column with details button
+                const detailsButton = `
+                    <button class="btn btn-sm btn-info" 
+                            onclick='showEndpointDetails("${endpoint.agentGuid}")'>
+                        <i class="fas fa-info-circle"></i> Details
+                    </button>`;
+                row.append(`<td>${detailsButton}</td>`);
+                
+                tableBody.append(row);
+            });
         },
         error: function(xhr, status, error) {
             console.error('Error:', error);
@@ -276,103 +273,79 @@ $(document).ready(function() {
         $('#endpointGroupFilterContainer').hide();
     });
 
-    // Function to populate filter dropdown
-    function populateEndpointGroupFilter(data) {
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return '-';
+        try {
+            return new Date(dateString).toLocaleString();
+        } catch (e) {
+            return dateString;
+        }
+    }
+
+    function filterData(data) {
+        const groupFilter = $('#endpointGroupFilter').val();
+        const searchTerm = $('#search-input').val().toLowerCase();
+
+        return data.filter(endpoint => {
+            const matchesGroup = !groupFilter || (endpoint.eppAgent?.endpointGroup || '') === groupFilter;
+            const matchesSearch = !searchTerm || 
+                (endpoint.displayName || '').toLowerCase().includes(searchTerm) ||
+                (endpoint.endpointName || '').toLowerCase().includes(searchTerm) ||
+                (endpoint.ip || '').toLowerCase().includes(searchTerm) ||
+                (endpoint.mac || '').toLowerCase().includes(searchTerm);
+
+            return matchesGroup && matchesSearch;
+        });
+    }
+
+    function populateEndpointGroupFilter(endpoints) {
+        if (!Array.isArray(endpoints)) {
+            console.error('Data is not an array:', endpoints);
+            return;
+        }
+
+        const groups = [...new Set(endpoints.map(endpoint => endpoint.eppAgent?.endpointGroup || 'No Group'))];
+        const select = $('#endpointGroupFilter');
+        select.empty();
+        select.append('<option value="">All Groups</option>');
+        groups.sort().forEach(group => {
+            select.append(`<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`);
+        });
+    }
+
+    function updateTableContent(data) {
         if (!Array.isArray(data)) {
             console.error('Data is not an array:', data);
             return;
         }
 
-        const select = $('#endpointGroupFilter');
-        const currentValue = select.val();
-        select.find('option:not(:first)').remove();
-
-        // Get unique endpoint groups
-        const groups = [...new Set(data.map(item => item.eppAgent?.endpointGroup).filter(Boolean))].sort();
-        
-        // Add options
-        groups.forEach(group => {
-            select.append($('<option>', {
-                value: group,
-                text: group
-            }));
-        });
-
-        // Restore previous selection if it exists
-        if (currentValue && groups.includes(currentValue)) {
-            select.val(currentValue);
-        }
-    }
-
-    // Function to update table content
-    function updateTableContent(data) {
-        const tableBody = $('#trendEndpointsTable tbody');
-        tableBody.empty();
-
-        if (data.length === 0) {
-            tableBody.html('<tr><td colspan="8" class="text-center">No endpoints available</td></tr>');
-            return;
-        }
-
-        // Get selected group filter
-        const selectedGroup = $('#endpointGroupFilter').val();
-
-        // Filter data if group is selected
-        const filteredData = selectedGroup 
-            ? data.filter(item => item.eppAgent?.endpointGroup === selectedGroup)
-            : data;
+        const filteredData = filterData(data);
+        const tbody = $('#trendEndpointsTable tbody');
+        tbody.empty();
 
         filteredData.forEach(endpoint => {
-            const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
             const row = $('<tr>');
-
-            row.append(`<td>${endpoint.displayName || '-'}</td>`);
-            row.append(`<td>${endpoint.os?.name || '-'}</td>`);
-            row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
-            row.append(`<td>${endpoint.eppAgent?.endpointGroup || '-'}</td>`);
-            row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
-            
-            // Status column with badge
-            const statusBadge = `<span class="badge ${isOnline ? 'bg-success' : 'bg-danger'}">${isOnline ? 'Online' : 'Offline'}</span>`;
-            row.append(`<td>${statusBadge}</td>`);
-            
-            // Component Version column with badge
-            const componentVersion = endpoint.eppAgent?.componentVersion || '-';
-            const versionBadgeClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
-            row.append(`<td><span class="badge ${versionBadgeClass}">${componentVersion}</span></td>`);
-            
-            // Actions column
-            const detailsButton = `
-                <button class="btn btn-sm btn-info" onclick="showEndpointDetails('${endpoint.agentGuid}')">
-                    <i class="fas fa-info-circle"></i> Details
-                </button>`;
-            row.append(`<td>${detailsButton}</td>`);
-            
-            tableBody.append(row);
+            row.append(`
+                <td>${escapeHtml(endpoint.displayName || endpoint.endpointName || '')}</td>
+                <td>${escapeHtml(endpoint.os?.name || endpoint.osName || '')}</td>
+                <td>${escapeHtml(endpoint.lastUsedIp || '')}</td>
+                <td>${escapeHtml(endpoint.eppAgent?.endpointGroup || '')}</td>
+                <td>${formatDate(endpoint.eppAgent?.lastConnectedDateTime)}</td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="showEndpointDetails('${escapeHtml(endpoint.agentGuid || '')}')">
+                        Details
+                    </button>
+                </td>
+            `);
+            tbody.append(row);
         });
-
-        // Update summary boxes
-        updateSummaryBoxes(data);
-    }
-
-    // Function to update summary boxes
-    function updateSummaryBoxes(data) {
-        const totalEndpoints = data.length;
-        const clientWorkloads = data.filter(e => e.os?.name?.toLowerCase().includes('windows')).length;
-        const serverWorkloads = data.filter(e => e.os?.name?.toLowerCase().includes('server')).length;
-        const outdatedComponents = data.filter(e => e.eppAgent?.componentVersion?.toLowerCase() === 'outdatedversion').length;
-
-        $('#totalEndpoints').text(totalEndpoints);
-        $('#clientWorkloads').text(clientWorkloads);
-        $('#serverWorkloads').text(serverWorkloads);
-        $('#outdatedComponents').text(outdatedComponents);
-    }
-
-    // Function to format date time
-    function formatDateTime(dateTimeStr) {
-        if (!dateTimeStr) return '-';
-        const date = new Date(dateTimeStr);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     }
 
     // Update endpoints table
@@ -381,14 +354,19 @@ $(document).ready(function() {
             url: '/api/plugin/TrendVisionOne/getfulldesktops?top=1000',
             method: 'GET',
             success: function(response) {
-                if (!response || response.result !== 'Success' || !response.data || !response.data.items) {
+                if (!response || response.result !== 'Success' || !response.data) {
                     console.error('Invalid response format:', response);
                     return;
                 }
 
-                const items = response.data.items;
-                populateEndpointGroupFilter(items);
-                updateTableContent(items);
+                const data = response.data;
+                if (!data.items || !Array.isArray(data.items)) {
+                    console.error('Data items is not an array:', data);
+                    return;
+                }
+
+                populateEndpointGroupFilter(data.items);
+                updateTableContent(data.items);
             },
             error: function(xhr, status, error) {
                 console.error('Error fetching endpoints:', error);
