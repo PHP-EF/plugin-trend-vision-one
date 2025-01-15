@@ -161,4 +161,4 @@ $pageData = [
 </div>
 
 <!-- Include the vulnerabilities JavaScript -->
-<script src="/plugins/TrendVisionOne/main-vulnerabilities.js"></script>
+<script src="/plugins/TrendVisionOne/js/main-vulnerabilities.js"></script>
