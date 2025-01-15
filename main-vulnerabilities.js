@@ -313,11 +313,25 @@ $(document).ready(function() {
 
         const groups = [...new Set(endpoints.map(endpoint => endpoint.eppAgent?.endpointGroup || 'No Group'))];
         const select = $('#endpointGroupFilter');
+        
+        // Save current selection
+        const currentSelection = select.val();
+        
+        // Clear and rebuild options
         select.empty();
         select.append('<option value="">All Groups</option>');
-        groups.sort().forEach(group => {
-            select.append(`<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`);
-        });
+        
+        // Add sorted groups
+        Array.from(groups)
+            .sort()
+            .forEach(group => {
+                select.append(`<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`);
+            });
+        
+        // Restore selection if it still exists in the new options
+        if (currentSelection && groups.has(currentSelection)) {
+            select.val(currentSelection);
+        }
     }
 
     function updateTableContent(data) {
@@ -408,8 +422,14 @@ function loadVulnerabilityData() {
         method: 'GET',
         success: function(response) {
             console.log('Raw API response:', response);
-            if (response.result === 'Success' && response.data && response.data.items) {
-                updateDashboard(response.data);
+            if (response.result === 'Success' && response.data) {
+                // Ensure we have an array of items, even if empty
+                const data = {
+                    items: Array.isArray(response.data) ? response.data : 
+                           (response.data.items ? response.data.items : []),
+                    totalCount: response.data.totalCount || 0
+                };
+                updateDashboard(data);
             } else {
                 console.error('Failed to load vulnerability data:', response);
                 resetCounters();
@@ -462,19 +482,54 @@ function updateTable(items) {
     const tbody = $('#vulnerabilities-table tbody');
     tbody.empty();
 
+    if (!items || items.length === 0) {
+        tbody.html(`
+            <tr>
+                <td colspan="7" class="text-center">
+                    No vulnerabilities found
+                </td>
+            </tr>
+        `);
+        return;
+    }
+
     items.forEach(item => {
         const row = $('<tr>');
-        const riskLevel = item.riskLevel ? item.riskLevel.toUpperCase() : 'UNKNOWN';
+        
+        // Extract risk level with fallback to severity
+        let riskLevel = (item.riskLevel || item.severity || 'UNKNOWN').toUpperCase();
+        if (!['HIGH', 'MEDIUM', 'LOW'].includes(riskLevel)) {
+            // Map severity numbers to risk levels if needed
+            if (item.cvssScore) {
+                const score = parseFloat(item.cvssScore);
+                if (score >= 7.0) riskLevel = 'HIGH';
+                else if (score >= 4.0) riskLevel = 'MEDIUM';
+                else riskLevel = 'LOW';
+            }
+        }
+        
+        // Get endpoint name from various possible fields
+        const endpointName = item.endpointName || item.displayName || item.hostname || item.deviceName || '-';
+        
+        // Get vulnerability ID from various possible fields
+        const vulnId = item.vulnerabilityId || item.cveId || item.id || '-';
+        
+        // Get product info
+        const productName = item.installedProductName || item.productName || item.application || '-';
+        const productVersion = item.installedProductVersion || item.productVersion || item.version || '';
+        
+        // Get detection date
+        const detectionDate = item.lastDetected || item.detectedAt || item.discoveryTime || '-';
         
         row.html(`
-            <td>${escapeHtml(item.endpointName || item.displayName || '')}</td>
+            <td>${escapeHtml(endpointName)}</td>
             <td><span class="risk-${riskLevel.toLowerCase()}">${escapeHtml(riskLevel)}</span></td>
             <td>${item.cvssScore || '-'}</td>
-            <td>${escapeHtml(item.vulnerabilityId || '')}</td>
-            <td>${escapeHtml(item.installedProductName || '')} ${escapeHtml(item.installedProductVersion || '')}</td>
-            <td>${formatDate(item.lastDetected || item.lastUsedIp)}</td>
+            <td>${escapeHtml(vulnId)}</td>
+            <td>${escapeHtml(productName)} ${escapeHtml(productVersion)}</td>
+            <td>${formatDate(detectionDate)}</td>
             <td>
-                <button class="btn btn-sm btn-info" onclick="showVulnerabilityDetails('${escapeHtml(item.agentGuid || '')}', '${escapeHtml(item.vulnerabilityId || '')}')">
+                <button class="btn btn-sm btn-info" onclick="showVulnerabilityDetails('${escapeHtml(item.agentGuid || '')}', '${escapeHtml(vulnId)}')">
                     Details
                 </button>
             </td>
