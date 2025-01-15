@@ -698,3 +698,90 @@ $('<style>')
         }
     `)
     .appendTo('head');
+
+// Initialize Bootstrap modal
+let vulnerabilityModal;
+
+$(document).ready(function() {
+    // Initialize the modal
+    vulnerabilityModal = new bootstrap.Modal(document.getElementById('vulnerability-details-modal'), {
+        keyboard: true,
+        backdrop: true
+    });
+    
+    // Load initial data
+    loadVulnerabilityData();
+    
+    // Set up search functionality
+    $('#search-input').on('input', function() {
+        filterTable($(this).val().toLowerCase());
+    });
+    
+    // Set up table sorting
+    $('#vulnerabilities-table th').on('click', function() {
+        const column = $(this).index();
+        sortTable(column);
+    });
+    
+    // Refresh data every 5 minutes
+    setInterval(loadVulnerabilityData, 300000);
+});
+
+function showVulnerabilityDetails(agentGuid, vulnId) {
+    if (!agentGuid || !vulnId) {
+        console.error('Missing required parameters for vulnerability details');
+        return;
+    }
+
+    // Show loading state
+    $('#vulnerability-details-modal .modal-body').html('<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    vulnerabilityModal.show();
+
+    // Fetch endpoint details
+    $.ajax({
+        url: `/api/plugin/TrendVisionOne/getendpointdetails/${agentGuid}`,
+        method: 'GET',
+        success: function(response) {
+            if (response.result === 'Success' && response.data) {
+                const endpoint = response.data;
+                
+                // Update modal content
+                $('#modal-endpoint-name').text(endpoint.displayName || endpoint.endpointName || '-');
+                $('#modal-endpoint-os').text(`${endpoint.osName || '-'} ${endpoint.osVersion || ''}`);
+                $('#modal-endpoint-ip').text(endpoint.lastUsedIp || '-');
+                $('#modal-endpoint-last-connected').text(formatDateTime(endpoint.eppAgent?.lastConnectedDateTime) || '-');
+                
+                // Find vulnerability details from the table
+                const vulnRow = $(`#vulnerabilities-table tr[data-vuln-id="${vulnId}"]`);
+                if (vulnRow.length) {
+                    const vulnData = {
+                        id: vulnId,
+                        riskLevel: vulnRow.find('td:eq(1)').text(),
+                        cvssScore: vulnRow.find('td:eq(2)').text(),
+                        product: vulnRow.find('td:eq(4)').text(),
+                        lastDetected: vulnRow.find('td:eq(5)').text()
+                    };
+                    
+                    $('#modal-vuln-id').text(vulnData.id);
+                    $('#modal-risk-level').html(`<span class="risk-${vulnData.riskLevel.toLowerCase()}">${vulnData.riskLevel}</span>`);
+                    $('#modal-cvss-score').text(vulnData.cvssScore);
+                    
+                    const [product, version] = vulnData.product.split(' ');
+                    $('#modal-product').text(product || '-');
+                    $('#modal-version').text(version || '-');
+                    $('#modal-last-detected').text(vulnData.lastDetected);
+                    
+                    // Add description placeholder
+                    $('#modal-description').text('Detailed vulnerability information not available.');
+                }
+            } else {
+                console.error('Failed to load endpoint details:', response);
+                $('#vulnerability-details-modal .modal-body').html('<div class="alert alert-danger">Failed to load vulnerability details.</div>');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading endpoint details:', error);
+            $('#vulnerability-details-modal .modal-body').html('<div class="alert alert-danger">An error occurred while loading the details.</div>');
+        }
+    });
+}

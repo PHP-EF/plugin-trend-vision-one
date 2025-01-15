@@ -111,20 +111,50 @@ $pageData = [
 </div>
 
 <!-- Details Modal -->
-<div class="modal fade" id="vulnerability-details-modal" tabindex="-1" role="dialog" aria-labelledby="vulnerabilityDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="vulnerability-details-modal" tabindex="-1" aria-labelledby="vulnerabilityDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="vulnerabilityDetailsModalLabel">Vulnerability Details</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <!-- Content will be populated by JavaScript -->
+                <div class="vulnerability-info">
+                    <h6>Endpoint Information</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Name:</strong> <span id="modal-endpoint-name"></span></p>
+                            <p><strong>OS:</strong> <span id="modal-endpoint-os"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>IP:</strong> <span id="modal-endpoint-ip"></span></p>
+                            <p><strong>Last Connected:</strong> <span id="modal-endpoint-last-connected"></span></p>
+                        </div>
+                    </div>
+                    
+                    <h6>Vulnerability Information</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>ID:</strong> <span id="modal-vuln-id"></span></p>
+                            <p><strong>Risk Level:</strong> <span id="modal-risk-level"></span></p>
+                            <p><strong>CVSS Score:</strong> <span id="modal-cvss-score"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Product:</strong> <span id="modal-product"></span></p>
+                            <p><strong>Version:</strong> <span id="modal-version"></span></p>
+                            <p><strong>Last Detected:</strong> <span id="modal-last-detected"></span></p>
+                        </div>
+                    </div>
+                    
+                    <h6>Description</h6>
+                    <div class="mb-3">
+                        <p id="modal-description"></p>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
