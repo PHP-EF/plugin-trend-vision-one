@@ -702,6 +702,29 @@ $('<style>')
 // Initialize Bootstrap modal
 let vulnerabilityModal = null;
 
+// Function to check if Bootstrap is loaded
+function isBootstrapLoaded() {
+    return typeof bootstrap !== 'undefined';
+}
+
+// Function to wait for Bootstrap to load
+function waitForBootstrap(callback, maxAttempts = 10) {
+    let attempts = 0;
+    
+    const checkBootstrap = () => {
+        attempts++;
+        if (isBootstrapLoaded()) {
+            callback();
+        } else if (attempts < maxAttempts) {
+            setTimeout(checkBootstrap, 100);
+        } else {
+            console.error('Bootstrap failed to load after multiple attempts');
+        }
+    };
+    
+    checkBootstrap();
+}
+
 // Function to initialize the modal
 function initializeModal() {
     const modalElement = document.getElementById('vulnerability-details-modal');
@@ -711,12 +734,6 @@ function initializeModal() {
     }
 
     try {
-        // Check if Bootstrap is loaded
-        if (typeof bootstrap === 'undefined') {
-            console.error('Bootstrap is not loaded');
-            return;
-        }
-
         // Create modal instance with specific options
         vulnerabilityModal = new bootstrap.Modal(modalElement, {
             backdrop: 'static',
@@ -731,14 +748,18 @@ function initializeModal() {
 function showModal() {
     try {
         if (!vulnerabilityModal) {
-            initializeModal();
+            if (isBootstrapLoaded()) {
+                initializeModal();
+            } else {
+                waitForBootstrap(() => {
+                    initializeModal();
+                    vulnerabilityModal?.show();
+                });
+                return;
+            }
         }
         
-        if (vulnerabilityModal) {
-            vulnerabilityModal.show();
-        } else {
-            console.error('Modal could not be initialized');
-        }
+        vulnerabilityModal?.show();
     } catch (error) {
         console.error('Error showing modal:', error);
     }
@@ -747,35 +768,35 @@ function showModal() {
 // Function to hide the modal
 function hideModal() {
     try {
-        if (vulnerabilityModal) {
-            vulnerabilityModal.hide();
-        }
+        vulnerabilityModal?.hide();
     } catch (error) {
         console.error('Error hiding modal:', error);
     }
 }
 
-// Wait for DOM and Bootstrap to be fully loaded
+// Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the modal
-    setTimeout(initializeModal, 100); // Small delay to ensure Bootstrap is loaded
-    
-    // Load initial data
-    loadVulnerabilityData();
-    
-    // Set up search functionality
-    $('#search-input').on('input', function() {
-        filterTable($(this).val().toLowerCase());
+    // Wait for Bootstrap to load before initializing
+    waitForBootstrap(() => {
+        initializeModal();
+        
+        // Load initial data
+        loadVulnerabilityData();
+        
+        // Set up search functionality
+        $('#search-input').on('input', function() {
+            filterTable($(this).val().toLowerCase());
+        });
+        
+        // Set up table sorting
+        $('#vulnerabilities-table th').on('click', function() {
+            const column = $(this).index();
+            sortTable(column);
+        });
+        
+        // Refresh data every 5 minutes
+        setInterval(loadVulnerabilityData, 300000);
     });
-    
-    // Set up table sorting
-    $('#vulnerabilities-table th').on('click', function() {
-        const column = $(this).index();
-        sortTable(column);
-    });
-    
-    // Refresh data every 5 minutes
-    setInterval(loadVulnerabilityData, 300000);
 });
 
 function showVulnerabilityDetails(agentGuid, vulnId) {
