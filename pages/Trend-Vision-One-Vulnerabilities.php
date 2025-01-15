@@ -74,28 +74,28 @@ $pageData = [
         <div class="card-body">
             <table id="vulnerabilitiesTable"
                    data-url="/api/plugin/TrendVisionOne/getvulnerabledevices"
-                   data-data-field="items"
+                   data-response-handler="responseHandler"
                    data-toggle="table"
                    data-search="true"
-                   data-filter-control="true"
-                   data-show-filter-control-switch="true"
-                   data-filter-control-visible="false"
                    data-show-refresh="true"
-                   data-pagination="true"
-                   data-sort-name="riskLevel"
-                   data-sort-order="desc"
+                   data-show-toggle="true"
                    data-show-columns="true"
-                   data-page-size="25"
+                   data-minimum-count-columns="2"
+                   data-show-pagination-switch="true"
+                   data-pagination="true"
+                   data-page-list="[10, 25, 50, 100, all]"
+                   data-show-footer="false"
+                   data-side-pagination="client"
                    class="table table-striped">
                 <thead>
                     <tr>
-                        <th data-field="endpointName" data-sortable="true" data-filter-control="input">Endpoint Name</th>
-                        <th data-field="riskLevel" data-sortable="true" data-filter-control="select" data-formatter="riskLevelFormatter">Risk Level</th>
-                        <th data-field="cvssScore" data-sortable="true" data-filter-control="input">CVSS Score</th>
-                        <th data-field="vulnerabilityId" data-sortable="true" data-filter-control="input">Vulnerability ID</th>
-                        <th data-field="productName" data-sortable="true" data-filter-control="input" data-formatter="productFormatter">Product</th>
-                        <th data-field="lastDetected" data-sortable="true" data-filter-control="input" data-formatter="dateFormatter">Last Detected</th>
-                        <th data-formatter="actionFormatter" data-events="actionEvents">Actions</th>
+                        <th data-field="endpointName" data-sortable="true">Endpoint Name</th>
+                        <th data-field="riskLevel" data-sortable="true" data-formatter="riskLevelFormatter">Risk Level</th>
+                        <th data-field="cvssScore" data-sortable="true">CVSS Score</th>
+                        <th data-field="vulnerabilityId" data-sortable="true">Vulnerability ID</th>
+                        <th data-field="productName" data-sortable="true" data-formatter="productFormatter">Product</th>
+                        <th data-field="lastDetected" data-sortable="true" data-formatter="dateFormatter">Last Detected</th>
+                        <th data-field="operate" data-formatter="actionFormatter" data-events="operateEvents">Actions</th>
                     </tr>
                 </thead>
             </table>
@@ -158,14 +158,25 @@ $pageData = [
 <script src="https://unpkg.com/bootstrap-table@1.20.2/dist/extensions/filter-control/bootstrap-table-filter-control.min.js"></script>
 
 <script>
-// Formatters for the table
-function riskLevelFormatter(value, row) {
+// Response handler to update statistics
+function responseHandler(res) {
+    if (res.stats) {
+        $('#totalVulnerabilities').text(res.stats.total || 0);
+        $('#highRiskCount').text(res.stats.high || 0);
+        $('#mediumRiskCount').text(res.stats.medium || 0);
+        $('#lowRiskCount').text(res.stats.low || 0);
+    }
+    return res.items || [];
+}
+
+// Formatters
+function riskLevelFormatter(value) {
     const riskClass = {
         'HIGH': 'risk-high',
         'MEDIUM': 'risk-medium',
         'LOW': 'risk-low'
     }[value] || '';
-    return `<span class="${riskClass}">${value}</span>`;
+    return value ? `<span class="${riskClass}">${value}</span>` : '-';
 }
 
 function productFormatter(value, row) {
@@ -177,12 +188,12 @@ function dateFormatter(value) {
     return new Date(value).toLocaleString('en-GB');
 }
 
-function actionFormatter(value, row) {
-    return `<button class="btn btn-sm btn-primary view-details" data-id="${row.agentGuid}" data-vuln-id="${row.vulnerabilityId}">Details</button>`;
+function actionFormatter() {
+    return '<button class="btn btn-sm btn-primary view-details">Details</button>';
 }
 
 // Event handlers
-window.actionEvents = {
+window.operateEvents = {
     'click .view-details': function (e, value, row) {
         // Show modal
         var modal = new bootstrap.Modal(document.getElementById('vulnerabilityDetailsModal'));
@@ -222,20 +233,8 @@ window.actionEvents = {
     }
 };
 
-// Update statistics when data is loaded
-$(function() {
-    $('#vulnerabilitiesTable').on('load-success.bs.table', function (e, data) {
-        if (data.stats) {
-            $('#totalVulnerabilities').text(data.stats.total || 0);
-            $('#highRiskCount').text(data.stats.high || 0);
-            $('#mediumRiskCount').text(data.stats.medium || 0);
-            $('#lowRiskCount').text(data.stats.low || 0);
-        }
-    });
-
-    // Refresh data every 5 minutes
-    setInterval(function() {
-        $('#vulnerabilitiesTable').bootstrapTable('refresh');
-    }, 300000);
-});
+// Refresh data every 5 minutes
+setInterval(function() {
+    $('#vulnerabilitiesTable').bootstrapTable('refresh');
+}, 300000);
 </script>
