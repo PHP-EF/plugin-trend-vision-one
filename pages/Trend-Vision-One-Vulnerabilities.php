@@ -49,12 +49,23 @@ $pageData = [
 .risk-low {
     color: #28a745;
 }
+
+.table th {
+    cursor: pointer;
+}
+
+.table th:hover {
+    background-color: rgba(0,0,0,0.05);
+}
 </style>
 
 <!-- Main content -->
 <div class="card">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <h2>Vulnerability Overview</h2>
+        <div class="search-box">
+            <input type="text" id="search-input" class="form-control" placeholder="Search vulnerabilities...">
+        </div>
     </div>
     <div class="card-body">
         <!-- Statistics Cards -->
@@ -99,122 +110,25 @@ $pageData = [
     </div>
 </div>
 
-<!-- JavaScript for handling the data -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    loadVulnerabilityData();
-});
-
-function loadVulnerabilityData() {
-    fetch('/api/plugin/TrendVisionOne/getvulnerabledevices')
-        .then(response => response.json())
-        .then(data => {
-            console.log('Raw API response:', data);
-            if (data.result === 'Success' && data.data && data.data.items) {
-                updateDashboard(data.data);
-            } else {
-                console.error('Failed to load vulnerability data:', data);
-                document.getElementById('total-vulnerabilities').textContent = '0';
-                document.getElementById('high-risk-count').textContent = '0';
-                document.getElementById('medium-risk-count').textContent = '0';
-                document.getElementById('low-risk-count').textContent = '0';
-            }
-        })
-        .catch(error => {
-            console.error('Error loading vulnerability data:', error);
-        });
-}
-
-function updateDashboard(data) {
-    if (!data || !data.items || !Array.isArray(data.items)) {
-        console.error('Invalid data structure:', data);
-        return;
-    }
-
-    const items = data.items;
-    
-    // Update total count from API response
-    document.getElementById('total-vulnerabilities').textContent = data.totalCount || items.length;
-    
-    // Count vulnerabilities by risk level
-    const riskCounts = {
-        'HIGH': 0,
-        'MEDIUM': 0,
-        'LOW': 0
-    };
-
-    items.forEach(item => {
-        if (item.riskLevel) {
-            const risk = item.riskLevel.toUpperCase();
-            if (riskCounts.hasOwnProperty(risk)) {
-                riskCounts[risk]++;
-            }
-        }
-    });
-
-    document.getElementById('high-risk-count').textContent = riskCounts['HIGH'];
-    document.getElementById('medium-risk-count').textContent = riskCounts['MEDIUM'];
-    document.getElementById('low-risk-count').textContent = riskCounts['LOW'];
-
-    // Update table
-    const tbody = document.querySelector('#vulnerabilities-table tbody');
-    tbody.innerHTML = ''; // Clear existing rows
-
-    items.forEach(item => {
-        const row = document.createElement('tr');
-        const riskLevel = item.riskLevel ? item.riskLevel.toUpperCase() : 'UNKNOWN';
-        
-        row.innerHTML = `
-            <td>${escapeHtml(item.endpointName || item.displayName || '')}</td>
-            <td><span class="risk-${riskLevel.toLowerCase()}">${escapeHtml(riskLevel)}</span></td>
-            <td>${item.cvssScore || '-'}</td>
-            <td>${escapeHtml(item.vulnerabilityId || '')}</td>
-            <td>${escapeHtml(item.installedProductName || '')} ${escapeHtml(item.installedProductVersion || '')}</td>
-            <td>${formatDate(item.lastDetected || item.lastUsedIp)}</td>
-            <td>
-                <button class="btn btn-sm btn-info" onclick="showDetails('${escapeHtml(item.agentGuid || '')}')">
-                    Details
+<!-- Details Modal -->
+<div class="modal fade" id="vulnerability-details-modal" tabindex="-1" role="dialog" aria-labelledby="vulnerabilityDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="vulnerabilityDetailsModalLabel">Vulnerability Details</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
                 </button>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-}
+            </div>
+            <div class="modal-body">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-function showDetails(agentGuid) {
-    if (!agentGuid) {
-        console.error('No agent GUID provided');
-        return;
-    }
-    
-    fetch(`/api/plugin/TrendVisionOne/getendpointdetails/${agentGuid}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.result === 'Success' && data.data) {
-                // TODO: Show modal with detailed information
-                console.log('Endpoint details:', data.data);
-            } else {
-                console.error('Failed to load endpoint details:', data);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading endpoint details:', error);
-        });
-}
-
-function formatDate(dateString) {
-    if (!dateString) return '-';
-    try {
-        return new Date(dateString).toLocaleString();
-    } catch (e) {
-        return dateString;
-    }
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-</script>
+<!-- Include the vulnerabilities JavaScript -->
+<script src="/plugins/TrendVisionOne/main-vulnerabilities.js"></script>
