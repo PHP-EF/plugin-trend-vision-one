@@ -416,33 +416,32 @@ function setupEventListeners() {
     });
 }
 
-function loadVulnerabilityData() {
-    $.ajax({
-        url: '/api/plugin/TrendVisionOne/getvulnerabledevices',
-        method: 'GET',
-        success: function(response) {
-            console.log('Raw API response:', response);
-            if (response.result === 'Success' && response.data) {
-                // Ensure we have an array of items, even if empty
-                const data = {
-                    items: Array.isArray(response.data) ? response.data : 
-                           (response.data.items ? response.data.items : []),
-                    totalCount: response.data.totalCount || 0
-                };
-                updateDashboard(data);
-            } else {
-                console.error('Failed to load vulnerability data:', response);
-                resetCounters();
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error loading vulnerability data:', error);
+async function loadVulnerabilityData() {
+    try {
+        const response = await $.ajax({
+            url: '/api/plugin/TrendVisionOne/getvulnerabledevices',
+            method: 'GET'
+        });
+
+        if (response.result === 'Success' && response.data) {
+            // Ensure we have an array of items, even if empty
+            const data = {
+                items: Array.isArray(response.data) ? response.data : 
+                       (response.data.items ? response.data.items : []),
+                totalCount: response.data.totalCount || 0
+            };
+            await updateDashboard(data);
+        } else {
+            console.error('Failed to load vulnerability data:', response);
             resetCounters();
         }
-    });
+    } catch (error) {
+        console.error('Error loading vulnerability data:', error);
+        resetCounters();
+    }
 }
 
-function updateDashboard(data) {
+async function updateDashboard(data) {
     if (!data || !data.items || !Array.isArray(data.items)) {
         console.error('Invalid data structure:', data);
         return;
@@ -475,10 +474,10 @@ function updateDashboard(data) {
     $('#low-risk-count').text(riskCounts['LOW']);
 
     // Update table
-    updateTable(items);
+    await updateTable(items);
 }
 
-function updateTable(items) {
+async function updateTable(items) {
     const tbody = $('#vulnerabilities-table tbody');
     tbody.empty();
 
@@ -702,183 +701,272 @@ $('<style>')
 // Initialize Bootstrap modal
 let vulnerabilityModal = null;
 
-// Function to check if Bootstrap is loaded
-function isBootstrapLoaded() {
-    return typeof bootstrap !== 'undefined';
-}
-
-// Function to wait for Bootstrap to load
-function waitForBootstrap(callback, maxAttempts = 10) {
-    let attempts = 0;
-    
-    const checkBootstrap = () => {
-        attempts++;
-        if (isBootstrapLoaded()) {
-            callback();
-        } else if (attempts < maxAttempts) {
-            setTimeout(checkBootstrap, 100);
-        } else {
-            console.error('Bootstrap failed to load after multiple attempts');
-        }
-    };
-    
-    checkBootstrap();
-}
-
 // Function to initialize the modal
-function initializeModal() {
-    // Wait for document ready
-    $(document).ready(function() {
-        const modalElement = document.getElementById('vulnerability-details-modal');
-        if (!modalElement) {
-            console.error('Modal element not found');
-            return;
-        }
+async function initializeModal() {
+    return new Promise((resolve, reject) => {
+        $(document).ready(async function() {
+            try {
+                const modalElement = document.getElementById('vulnerability-details-modal');
+                if (!modalElement) {
+                    throw new Error('Modal element not found');
+                }
 
-        try {
-            // Create modal instance with specific options
-            vulnerabilityModal = new bootstrap.Modal(modalElement, {
-                backdrop: true,
-                keyboard: true,
-                focus: true
-            });
+                // Create modal instance with specific options
+                vulnerabilityModal = new bootstrap.Modal(modalElement, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true
+                });
 
-            // Add event listener for modal hidden event
-            modalElement.addEventListener('hidden.bs.modal', function() {
-                // Clear modal content when hidden
-                $('#modal-endpoint-name').text('');
-                $('#modal-endpoint-os').text('');
-                $('#modal-endpoint-ip').text('');
-                $('#modal-endpoint-last-connected').text('');
-                $('#modal-vuln-id').text('');
-                $('#modal-risk-level').text('');
-                $('#modal-cvss-score').text('');
-                $('#modal-product').text('');
-                $('#modal-version').text('');
-                $('#modal-last-detected').text('');
-                $('#modal-description').text('');
-            });
-        } catch (error) {
-            console.error('Error initializing modal:', error);
-        }
+                // Add event listener for modal hidden event
+                modalElement.addEventListener('hidden.bs.modal', function() {
+                    // Clear modal content when hidden
+                    $('#modal-endpoint-name').text('');
+                    $('#modal-endpoint-os').text('');
+                    $('#modal-endpoint-ip').text('');
+                    $('#modal-endpoint-last-connected').text('');
+                    $('#modal-vuln-id').text('');
+                    $('#modal-risk-level').text('');
+                    $('#modal-cvss-score').text('');
+                    $('#modal-product').text('');
+                    $('#modal-version').text('');
+                    $('#modal-last-detected').text('');
+                    $('#modal-description').text('');
+                });
+
+                resolve(vulnerabilityModal);
+            } catch (error) {
+                console.error('Error initializing modal:', error);
+                reject(error);
+            }
+        });
     });
 }
 
 // Function to show the modal
-function showModal() {
+async function showModal() {
     try {
         if (!vulnerabilityModal) {
-            initializeModal();
+            await initializeModal();
         }
         
-        // Use jQuery to show the modal
-        $('#vulnerability-details-modal').modal('show');
+        return new Promise((resolve) => {
+            $('#vulnerability-details-modal')
+                .one('shown.bs.modal', () => resolve())
+                .modal('show');
+        });
     } catch (error) {
         console.error('Error showing modal:', error);
+        throw error;
     }
 }
 
 // Function to hide the modal
-function hideModal() {
+async function hideModal() {
     try {
-        // Use jQuery to hide the modal
-        $('#vulnerability-details-modal').modal('hide');
+        return new Promise((resolve) => {
+            $('#vulnerability-details-modal')
+                .one('hidden.bs.modal', () => resolve())
+                .modal('hide');
+        });
     } catch (error) {
         console.error('Error hiding modal:', error);
+        throw error;
     }
 }
 
 // Initialize when document is ready
-$(document).ready(function() {
-    // Initialize the modal
-    initializeModal();
-    
-    // Load initial data
-    loadVulnerabilityData();
-    
-    // Set up search functionality
-    $('#search-input').on('input', function() {
-        filterTable($(this).val().toLowerCase());
-    });
-    
-    // Set up table sorting
-    $('#vulnerabilities-table th').on('click', function() {
-        const column = $(this).index();
-        sortTable(column);
-    });
-    
-    // Refresh data every 5 minutes
-    setInterval(loadVulnerabilityData, 300000);
+$(document).ready(async function() {
+    try {
+        // Initialize the modal
+        await initializeModal();
+        
+        // Load initial data
+        await loadVulnerabilityData();
+        
+        // Set up search functionality
+        $('#search-input').on('input', function() {
+            filterTable($(this).val().toLowerCase());
+        });
+        
+        // Set up table sorting
+        $('#vulnerabilities-table th').on('click', function() {
+            const column = $(this).index();
+            sortTable(column);
+        });
+        
+        // Refresh data every 5 minutes
+        setInterval(loadVulnerabilityData, 300000);
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
 });
 
-function showVulnerabilityDetails(agentGuid, vulnId) {
+async function showVulnerabilityDetails(agentGuid, vulnId) {
     if (!agentGuid || !vulnId) {
         console.error('Missing required parameters for vulnerability details');
         return;
     }
 
-    // Show loading state in modal
-    $('#vulnerability-details-modal .vulnerability-info').html(`
-        <div class="text-center">
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
+    try {
+        // Show loading state in modal
+        $('#vulnerability-details-modal .vulnerability-info').html(`
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
-        </div>
-    `);
+        `);
 
-    // Show the modal
-    showModal();
+        // Show the modal and wait for it to complete
+        await showModal();
 
-    // Fetch endpoint details
-    $.ajax({
-        url: `/api/plugin/TrendVisionOne/getendpointdetails/${agentGuid}`,
-        method: 'GET',
-        success: function(response) {
-            if (response.result === 'Success' && response.data) {
-                const endpoint = response.data;
+        // Fetch endpoint details
+        const response = await $.ajax({
+            url: `/api/plugin/TrendVisionOne/getendpointdetails/${agentGuid}`,
+            method: 'GET'
+        });
+
+        if (response.result === 'Success' && response.data) {
+            const endpoint = response.data;
+            
+            // Update endpoint information
+            $('#modal-endpoint-name').text(endpoint.displayName || endpoint.endpointName || '-');
+            $('#modal-endpoint-os').text(`${endpoint.osName || '-'} ${endpoint.osVersion || ''}`);
+            $('#modal-endpoint-ip').text(endpoint.lastUsedIp || '-');
+            $('#modal-endpoint-last-connected').text(formatDateTime(endpoint.eppAgent?.lastConnectedDateTime) || '-');
+            
+            // Find vulnerability details from the table
+            const vulnRow = $(`#vulnerabilities-table tr[data-vuln-id="${vulnId}"]`);
+            if (vulnRow.length) {
+                const vulnData = {
+                    id: vulnId,
+                    riskLevel: vulnRow.find('td:eq(1)').text(),
+                    cvssScore: vulnRow.find('td:eq(2)').text(),
+                    product: vulnRow.find('td:eq(4)').text(),
+                    lastDetected: vulnRow.find('td:eq(5)').text()
+                };
                 
-                // Update endpoint information
-                $('#modal-endpoint-name').text(endpoint.displayName || endpoint.endpointName || '-');
-                $('#modal-endpoint-os').text(`${endpoint.osName || '-'} ${endpoint.osVersion || ''}`);
-                $('#modal-endpoint-ip').text(endpoint.lastUsedIp || '-');
-                $('#modal-endpoint-last-connected').text(formatDateTime(endpoint.eppAgent?.lastConnectedDateTime) || '-');
+                // Update vulnerability information
+                $('#modal-vuln-id').text(vulnData.id);
+                $('#modal-risk-level').html(`<span class="risk-${vulnData.riskLevel.toLowerCase()}">${vulnData.riskLevel}</span>`);
+                $('#modal-cvss-score').text(vulnData.cvssScore);
                 
-                // Find vulnerability details from the table
-                const vulnRow = $(`#vulnerabilities-table tr[data-vuln-id="${vulnId}"]`);
-                if (vulnRow.length) {
-                    const vulnData = {
-                        id: vulnId,
-                        riskLevel: vulnRow.find('td:eq(1)').text(),
-                        cvssScore: vulnRow.find('td:eq(2)').text(),
-                        product: vulnRow.find('td:eq(4)').text(),
-                        lastDetected: vulnRow.find('td:eq(5)').text()
-                    };
-                    
-                    // Update vulnerability information
-                    $('#modal-vuln-id').text(vulnData.id);
-                    $('#modal-risk-level').html(`<span class="risk-${vulnData.riskLevel.toLowerCase()}">${vulnData.riskLevel}</span>`);
-                    $('#modal-cvss-score').text(vulnData.cvssScore);
-                    
-                    const [product, version] = vulnData.product.split(' ');
-                    $('#modal-product').text(product || '-');
-                    $('#modal-version').text(version || '-');
-                    $('#modal-last-detected').text(vulnData.lastDetected);
-                    
-                    // Add description placeholder
-                    $('#modal-description').text('Detailed vulnerability information not available.');
-                }
-            } else {
-                console.error('Failed to load endpoint details:', response);
-                $('#vulnerability-details-modal .vulnerability-info').html(`
-                    <div class="alert alert-danger">Failed to load vulnerability details.</div>
-                `);
+                const [product, version] = vulnData.product.split(' ');
+                $('#modal-product').text(product || '-');
+                $('#modal-version').text(version || '-');
+                $('#modal-last-detected').text(vulnData.lastDetected);
+                
+                // Add description placeholder
+                $('#modal-description').text('Detailed vulnerability information not available.');
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error loading endpoint details:', error);
+        } else {
+            console.error('Failed to load endpoint details:', response);
             $('#vulnerability-details-modal .vulnerability-info').html(`
-                <div class="alert alert-danger">An error occurred while loading the details.</div>
+                <div class="alert alert-danger">Failed to load vulnerability details.</div>
             `);
         }
-    });
+    } catch (error) {
+        console.error('Error loading endpoint details:', error);
+        $('#vulnerability-details-modal .vulnerability-info').html(`
+            <div class="alert alert-danger">An error occurred while loading the details.</div>
+        `);
+    }
+}
+
+// Convert loadVulnerabilityData to async
+async function loadVulnerabilityData() {
+    try {
+        const response = await $.ajax({
+            url: '/api/plugin/TrendVisionOne/getvulnerabilities',
+            method: 'GET'
+        });
+
+        if (response.result === 'Success') {
+            await updateTable(response.data);
+        } else {
+            console.error('Failed to load vulnerability data:', response);
+            $('#vulnerabilities-table tbody').html(`
+                <tr><td colspan="7" class="text-center text-danger">Failed to load vulnerability data</td></tr>
+            `);
+        }
+    } catch (error) {
+        console.error('Error loading vulnerability data:', error);
+        $('#vulnerabilities-table tbody').html(`
+            <tr><td colspan="7" class="text-center text-danger">An error occurred while loading data</td></tr>
+        `);
+    }
+}
+
+// Convert updateTable to async
+async function updateTable(items) {
+    const tbody = $('#vulnerabilities-table tbody');
+    tbody.empty();
+
+    if (!items || items.length === 0) {
+        tbody.html(`
+            <tr>
+                <td colspan="7" class="text-center">
+                    No vulnerabilities found
+                </td>
+            </tr>
+        `);
+        return;
+    }
+
+    // Process items in chunks to avoid blocking the UI
+    const chunkSize = 50;
+    for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize);
+        
+        // Use setTimeout to allow UI updates between chunks
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        chunk.forEach(item => {
+            const row = $('<tr>');
+            
+            // Extract risk level with fallback to severity
+            let riskLevel = (item.riskLevel || item.severity || 'UNKNOWN').toUpperCase();
+            if (!['HIGH', 'MEDIUM', 'LOW'].includes(riskLevel)) {
+                // Map severity numbers to risk levels if needed
+                if (item.cvssScore) {
+                    const score = parseFloat(item.cvssScore);
+                    if (score >= 7.0) riskLevel = 'HIGH';
+                    else if (score >= 4.0) riskLevel = 'MEDIUM';
+                    else riskLevel = 'LOW';
+                }
+            }
+            
+            // Get endpoint name from various possible fields
+            const endpointName = item.endpointName || item.displayName || item.hostname || item.deviceName || '-';
+            
+            // Get vulnerability ID from various possible fields
+            const vulnId = item.vulnerabilityId || item.cveId || item.id || '-';
+            
+            // Get product info
+            const productName = item.installedProductName || item.productName || item.application || '-';
+            const productVersion = item.installedProductVersion || item.productVersion || item.version || '';
+            
+            // Get detection date
+            const detectionDate = item.lastDetected || item.detectedAt || item.discoveryTime || '-';
+            
+            // Add data attribute for vulnerability ID
+            row.attr('data-vuln-id', vulnId);
+            
+            row.html(`
+                <td>${escapeHtml(endpointName)}</td>
+                <td><span class="risk-${riskLevel.toLowerCase()}">${escapeHtml(riskLevel)}</span></td>
+                <td>${item.cvssScore || '-'}</td>
+                <td>${escapeHtml(vulnId)}</td>
+                <td>${escapeHtml(productName)} ${escapeHtml(productVersion)}</td>
+                <td>${formatDate(detectionDate)}</td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="showVulnerabilityDetails('${escapeHtml(item.agentGuid || '')}', '${escapeHtml(vulnId)}')">
+                        Details
+                    </button>
+                </td>
+            `);
+            tbody.append(row);
+        });
+    }
 }
