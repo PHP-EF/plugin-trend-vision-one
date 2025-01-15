@@ -16,10 +16,14 @@ $GLOBALS['plugins']['TrendVisionOne'] = [ // Plugin Name
     'api' => '/api/plugin/TrendVisionOne/settings', // api route for settings page, or null if no settings page
     'dependencies' => [
         'css' => [
-            'https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.css'
+            'https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.css',
+            'https://unpkg.com/bootstrap-table@1.20.2/dist/extensions/filter-control/bootstrap-table-filter-control.min.css'
         ],
         'js' => [
-            'https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.js'
+            'https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.js',
+            'https://unpkg.com/bootstrap-table@1.20.2/dist/extensions/filter-control/bootstrap-table-filter-control.min.js',
+            'https://unpkg.com/bootstrap-table@1.20.2/dist/extensions/export/bootstrap-table-export.min.js',
+            'https://unpkg.com/tableexport.jquery.plugin/tableExport.min.js'
         ]
     ]
 ];

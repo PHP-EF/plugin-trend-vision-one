@@ -36,78 +36,63 @@ $pageData = [
 </style>
 
 <div class="container-fluid">
-    <h1>Vulnerability Overview</h1>
-
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="stat-card bg-primary">
-                <h3>Total Vulnerabilities</h3>
-                <div class="value" id="totalVulnerabilities">-</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card bg-danger">
-                <h3>High Risk</h3>
-                <div class="value" id="highRiskCount">-</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card bg-warning">
-                <h3>Medium Risk</h3>
-                <div class="value" id="mediumRiskCount">-</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card bg-success">
-                <h3>Low Risk</h3>
-                <div class="value" id="lowRiskCount">-</div>
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h1>Vulnerability Overview</h1>
+                    
+                    <!-- Statistics Cards -->
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-card bg-primary">
+                                <h3>Total Vulnerabilities</h3>
+                                <div class="value" id="totalVulnerabilities">-</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-danger">
+                                <h3>High Risk</h3>
+                                <div class="value" id="highRiskCount">-</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-warning">
+                                <h3>Medium Risk</h3>
+                                <div class="value" id="mediumRiskCount">-</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-success">
+                                <h3>Low Risk</h3>
+                                <div class="value" id="lowRiskCount">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Vulnerabilities Table -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Vulnerability Details</h5>
-        </div>
-        <div class="card-body">
-            <table id="vulnerabilitiesTable"
-                   data-url="/api/plugin/TrendVisionOne/getvulnerabledevices"
-                   data-data-field="items"
-                   data-toggle="table"
-                   data-search="true"
-                   data-filter-control="true"
-                   data-show-filter-control-switch="true"
-                   data-filter-control-visible="false"
-                   data-show-refresh="true"
-                   data-pagination="true"
-                   data-toolbar="#toolbar"
-                   data-sort-name="riskLevel"
-                   data-sort-order="desc"
-                   data-show-columns="true"
-                   data-page-size="25"
-                   class="table table-striped">
-                <thead>
-                    <tr>
-                        <th data-field="state" data-checkbox="true"></th>
-                        <th data-field="endpointName" data-sortable="true" data-filter-control="input">Endpoint Name</th>
-                        <th data-field="riskLevel" data-sortable="true" data-filter-control="select" data-formatter="riskLevelFormatter">Risk Level</th>
-                        <th data-field="cvssScore" data-sortable="true" data-filter-control="input">CVSS Score</th>
-                        <th data-field="vulnerabilityId" data-sortable="true" data-filter-control="input">Vulnerability ID</th>
-                        <th data-field="productName" data-sortable="true" data-filter-control="input" data-formatter="productFormatter">Product</th>
-                        <th data-field="lastDetected" data-sortable="true" data-filter-control="input" data-formatter="dateFormatter">Last Detected</th>
-                        <th data-formatter="actionFormatter" data-events="actionEvents">Actions</th>
-                    </tr>
-                </thead>
-            </table>
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="container">
+                        <div class="row justify-content-center">
+                            <table id="vulnerabilitiesTable" class="table table-striped"></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Details Modal -->
-<div class="modal" id="vulnerabilityDetailsModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="vulnerabilityDetailsModal" tabindex="-1" role="dialog" aria-labelledby="vulnerabilityDetailsModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Vulnerability Details</h5>
@@ -155,6 +140,80 @@ $pageData = [
 </div>
 
 <script>
+// Initialize the vulnerabilities table
+$(function() {
+    $("#vulnerabilitiesTable").bootstrapTable({
+        url: "/api/plugin/TrendVisionOne/getvulnerabledevices",
+        dataField: "items",
+        sortable: true,
+        pagination: true,
+        search: true,
+        showExport: true,
+        showRefresh: true,
+        exportTypes: ["json", "csv", "excel"],
+        showColumns: true,
+        filterControl: true,
+        filterControlVisible: false,
+        showFilterControlSwitch: true,
+        pageSize: 25,
+        columns: [{
+            field: "state",
+            checkbox: true
+        }, {
+            field: "endpointName",
+            title: "Endpoint Name",
+            sortable: true,
+            filterControl: "input"
+        }, {
+            field: "riskLevel",
+            title: "Risk Level",
+            sortable: true,
+            filterControl: "select",
+            formatter: riskLevelFormatter
+        }, {
+            field: "cvssScore",
+            title: "CVSS Score",
+            sortable: true,
+            filterControl: "input"
+        }, {
+            field: "vulnerabilityId",
+            title: "Vulnerability ID",
+            sortable: true,
+            filterControl: "input"
+        }, {
+            field: "productName",
+            title: "Product",
+            sortable: true,
+            filterControl: "input",
+            formatter: productFormatter
+        }, {
+            field: "lastDetected",
+            title: "Last Detected",
+            sortable: true,
+            filterControl: "input",
+            formatter: dateFormatter
+        }, {
+            field: "actions",
+            title: "Actions",
+            formatter: actionFormatter,
+            events: window.actionEvents
+        }],
+        onLoadSuccess: function(data) {
+            if (data.stats) {
+                $('#totalVulnerabilities').text(data.stats.total || 0);
+                $('#highRiskCount').text(data.stats.high || 0);
+                $('#mediumRiskCount').text(data.stats.medium || 0);
+                $('#lowRiskCount').text(data.stats.low || 0);
+            }
+        }
+    });
+
+    // Refresh data every 5 minutes
+    setInterval(function() {
+        $("#vulnerabilitiesTable").bootstrapTable('refresh');
+    }, 300000);
+});
+
 // Formatters
 function riskLevelFormatter(value) {
     const riskClass = {
@@ -191,11 +250,7 @@ window.actionEvents = {
         // Initialize modal if needed
         let modal = bootstrap.Modal.getInstance(modalEl);
         if (!modal) {
-            modal = new bootstrap.Modal(modalEl, {
-                backdrop: true,
-                keyboard: true,
-                focus: true
-            });
+            modal = new bootstrap.Modal(modalEl);
         }
 
         // Fetch endpoint details
@@ -235,21 +290,4 @@ window.actionEvents = {
         });
     }
 };
-
-// Update statistics when data is loaded
-$(function() {
-    $('#vulnerabilitiesTable').on('load-success.bs.table', function (e, data) {
-        if (data.stats) {
-            $('#totalVulnerabilities').text(data.stats.total || 0);
-            $('#highRiskCount').text(data.stats.high || 0);
-            $('#mediumRiskCount').text(data.stats.medium || 0);
-            $('#lowRiskCount').text(data.stats.low || 0);
-        }
-    });
-
-    // Refresh data every 5 minutes
-    setInterval(function() {
-        $('#vulnerabilitiesTable').bootstrapTable('refresh');
-    }, 300000);
-});
 </script>
