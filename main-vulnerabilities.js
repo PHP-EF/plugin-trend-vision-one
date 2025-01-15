@@ -702,13 +702,51 @@ $('<style>')
 // Initialize Bootstrap modal
 let vulnerabilityModal = null;
 
+// Function to initialize the modal
+function initializeModal() {
+    const modalElement = document.getElementById('vulnerability-details-modal');
+    if (!modalElement) {
+        console.error('Modal element not found');
+        return;
+    }
+
+    try {
+        // Check if Bootstrap is loaded
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap is not loaded');
+            return;
+        }
+
+        vulnerabilityModal = new bootstrap.Modal(modalElement);
+    } catch (error) {
+        console.error('Error initializing modal:', error);
+    }
+}
+
+// Function to show the modal
+function showModal() {
+    if (!vulnerabilityModal) {
+        initializeModal();
+    }
+    
+    if (vulnerabilityModal) {
+        vulnerabilityModal.show();
+    } else {
+        console.error('Modal could not be initialized');
+    }
+}
+
+// Function to hide the modal
+function hideModal() {
+    if (vulnerabilityModal) {
+        vulnerabilityModal.hide();
+    }
+}
+
 // Wait for DOM and Bootstrap to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the modal
-    const modalElement = document.getElementById('vulnerability-details-modal');
-    if (modalElement) {
-        vulnerabilityModal = new bootstrap.Modal(modalElement);
-    }
+    initializeModal();
     
     // Load initial data
     loadVulnerabilityData();
@@ -741,13 +779,8 @@ function showVulnerabilityDetails(agentGuid, vulnId) {
         return;
     }
 
-    // Initialize modal if not already done
-    if (!vulnerabilityModal) {
-        vulnerabilityModal = new bootstrap.Modal(modalElement);
-    }
-
     // Show loading state
-    const modalBody = modalElement.querySelector('.modal-body');
+    const modalBody = modalElement.querySelector('.vulnerability-info');
     if (modalBody) {
         modalBody.innerHTML = `
             <div class="text-center">
@@ -758,17 +791,52 @@ function showVulnerabilityDetails(agentGuid, vulnId) {
     }
 
     // Show the modal
-    vulnerabilityModal.show();
+    showModal();
 
     // Fetch endpoint details
     $.ajax({
         url: `/api/plugin/TrendVisionOne/getendpointdetails/${agentGuid}`,
         method: 'GET',
         success: function(response) {
+            if (!modalBody) return;
+
             if (response.result === 'Success' && response.data) {
                 const endpoint = response.data;
                 
-                // Update modal content
+                // Update modal content with the original structure
+                modalBody.innerHTML = `
+                    <h6>Endpoint Information</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Name:</strong> <span id="modal-endpoint-name"></span></p>
+                            <p><strong>OS:</strong> <span id="modal-endpoint-os"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>IP:</strong> <span id="modal-endpoint-ip"></span></p>
+                            <p><strong>Last Connected:</strong> <span id="modal-endpoint-last-connected"></span></p>
+                        </div>
+                    </div>
+                    
+                    <h6>Vulnerability Information</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>ID:</strong> <span id="modal-vuln-id"></span></p>
+                            <p><strong>Risk Level:</strong> <span id="modal-risk-level"></span></p>
+                            <p><strong>CVSS Score:</strong> <span id="modal-cvss-score"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Product:</strong> <span id="modal-product"></span></p>
+                            <p><strong>Version:</strong> <span id="modal-version"></span></p>
+                            <p><strong>Last Detected:</strong> <span id="modal-last-detected"></span></p>
+                        </div>
+                    </div>
+                    
+                    <h6>Description</h6>
+                    <div class="mb-3">
+                        <p id="modal-description"></p>
+                    </div>`;
+                
+                // Update the content
                 $('#modal-endpoint-name').text(endpoint.displayName || endpoint.endpointName || '-');
                 $('#modal-endpoint-os').text(`${endpoint.osName || '-'} ${endpoint.osVersion || ''}`);
                 $('#modal-endpoint-ip').text(endpoint.lastUsedIp || '-');
@@ -804,7 +872,9 @@ function showVulnerabilityDetails(agentGuid, vulnId) {
         },
         error: function(xhr, status, error) {
             console.error('Error loading endpoint details:', error);
-            modalBody.innerHTML = '<div class="alert alert-danger">An error occurred while loading the details.</div>';
+            if (modalBody) {
+                modalBody.innerHTML = '<div class="alert alert-danger">An error occurred while loading the details.</div>';
+            }
         }
     });
 }
