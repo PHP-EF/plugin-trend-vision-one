@@ -395,21 +395,117 @@ class TrendVisionOne extends phpef {
                 throw new Exception("Access Denied - Missing READ permissions");
             }
 
-            // Make API request
-            $result = $this->makeApiRequest("GET", "asrm/vulnerableDevices");
+            // Check if we need to sync (based on sync interval)
+            $lastSync = intval($this->getLastSync());
+            $syncInterval = $this->getSyncInterval();
+            $currentTime = time();
             
-            if ($result === false) {
+            if (($currentTime - $lastSync) < $syncInterval) {
+                // Return data from database if within sync interval
+                $vulnerabilities = $this->getAllVulnerabilities();
+                $stats = $this->getVulnerabilityStats();
+                
+                $this->api->setAPIResponse('Success', 'Retrieved vulnerability data from cache');
+                $this->api->setAPIResponseData([
+                    'items' => $vulnerabilities,
+                    'stats' => $stats
+                ]);
+                return true;
+            }
+
+            // Get fresh data from Vision One API
+            $response = $this->makeApiRequest("GET", "asrm/vulnerableDevices");
+            
+            if ($response === false) {
                 $this->api->setAPIResponse('Error', 'Failed to retrieve vulnerable devices - API request failed');
                 return false;
             }
 
-            // Just pass through the raw response
-            $this->api->setAPIResponse('Success', 'Retrieved raw device data');
-            $this->api->setAPIResponseData($result);
-            return true;
-
+            if ($response && isset($response['items'])) {
+                // Begin transaction
+                $this->sql->beginTransaction();
+                
+                try {
+                    foreach ($response['items'] as $item) {
+                        // Process endpoint data
+                        $endpointData = [
+                            'agentGuid' => $item['agentGuid'],
+                            'endpointName' => $item['endpointName'],
+                            'displayName' => $item['displayName'] ?? null,
+                            'hostname' => $item['hostname'] ?? null,
+                            'ip' => $item['ip'] ?? null,
+                            'mac' => $item['mac'] ?? null,
+                            'osName' => $item['osName'] ?? null,
+                            'osVersion' => $item['osVersion'] ?? null,
+                            'lastSeen' => $item['lastSeen'] ?? null
+                        ];
+                        
+                        // Insert/Update endpoint
+                        $this->upsertEndpoint($endpointData);
+                        
+                        // Get endpoint ID
+                        $stmt = $this->sql->prepare('SELECT id FROM endpoints WHERE agentGuid = :agentGuid');
+                        $stmt->execute([':agentGuid' => $item['agentGuid']]);
+                        $endpointId = $stmt->fetchColumn();
+                        
+                        // Process vulnerabilities
+                        if (isset($item['vulnerabilities'])) {
+                            foreach ($item['vulnerabilities'] as $vuln) {
+                                // Process vulnerability data
+                                $vulnData = [
+                                    'vulnerabilityId' => $vuln['id'],
+                                    'cveId' => $vuln['cveId'] ?? null,
+                                    'description' => $vuln['description'] ?? null,
+                                    'riskLevel' => $this->mapRiskLevel($vuln['cvssScore'] ?? 0),
+                                    'cvssScore' => $vuln['cvssScore'] ?? null,
+                                    'productName' => $vuln['productName'] ?? null,
+                                    'productVersion' => $vuln['productVersion'] ?? null,
+                                    'lastDetected' => $vuln['lastDetected'] ?? null,
+                                    'status' => 'Active'
+                                ];
+                                
+                                // Insert/Update vulnerability
+                                $this->upsertVulnerability($vulnData);
+                                
+                                // Get vulnerability ID
+                                $stmt = $this->sql->prepare('SELECT id FROM vulnerabilities WHERE vulnerabilityId = :vulnerabilityId');
+                                $stmt->execute([':vulnerabilityId' => $vuln['id']]);
+                                $vulnerabilityId = $stmt->fetchColumn();
+                                
+                                // Link endpoint to vulnerability
+                                $this->linkEndpointVulnerability($endpointId, $vulnerabilityId, $vuln['lastDetected'] ?? null);
+                            }
+                        }
+                    }
+                    
+                    // Update last sync time
+                    $this->updateLastSync();
+                    
+                    // Commit transaction
+                    $this->sql->commit();
+                    
+                    // Return fresh data from database
+                    $vulnerabilities = $this->getAllVulnerabilities();
+                    $stats = $this->getVulnerabilityStats();
+                    
+                    $this->api->setAPIResponse('Success', 'Retrieved and stored vulnerability data');
+                    $this->api->setAPIResponseData([
+                        'items' => $vulnerabilities,
+                        'stats' => $stats
+                    ]);
+                    return true;
+                    
+                } catch (Exception $e) {
+                    // Roll back transaction on error
+                    $this->sql->rollBack();
+                    throw $e;
+                }
+            }
+            
+            $this->api->setAPIResponse('Error', 'No vulnerability data received from Vision One');
+            return false;
+            
         } catch (Exception $e) {
-            error_log("Error in GetVulnerableDevices: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
@@ -525,128 +621,6 @@ class TrendVisionOne extends phpef {
         }
     }
 
-    // Get Vision One Vulnerabilities and store in database
-    public function getVulnerableDevices() {
-        try {
-            // Check if we need to sync (based on sync interval)
-            $lastSync = intval($this->getLastSync());
-            $syncInterval = $this->getSyncInterval();
-            $currentTime = time();
-            
-            if (($currentTime - $lastSync) < $syncInterval) {
-                // Return data from database if within sync interval
-                $vulnerabilities = $this->getAllVulnerabilities();
-                $stats = $this->getVulnerabilityStats();
-                
-                return [
-                    'result' => 'Success',
-                    'data' => [
-                        'items' => $vulnerabilities,
-                        'stats' => $stats
-                    ]
-                ];
-            }
-
-            // Get fresh data from Vision One API
-            $response = $this->queryVisionOne('GET', '/v3.0/vulnerabilities/hosts');
-            
-            if ($response && isset($response['items'])) {
-                // Begin transaction
-                $this->sql->beginTransaction();
-                
-                try {
-                    foreach ($response['items'] as $item) {
-                        // Process endpoint data
-                        $endpointData = [
-                            'agentGuid' => $item['agentGuid'],
-                            'endpointName' => $item['endpointName'],
-                            'displayName' => $item['displayName'] ?? null,
-                            'hostname' => $item['hostname'] ?? null,
-                            'ip' => $item['ip'] ?? null,
-                            'mac' => $item['mac'] ?? null,
-                            'osName' => $item['osName'] ?? null,
-                            'osVersion' => $item['osVersion'] ?? null,
-                            'lastSeen' => $item['lastSeen'] ?? null
-                        ];
-                        
-                        // Insert/Update endpoint
-                        $this->upsertEndpoint($endpointData);
-                        
-                        // Get endpoint ID
-                        $stmt = $this->sql->prepare('SELECT id FROM endpoints WHERE agentGuid = :agentGuid');
-                        $stmt->execute([':agentGuid' => $item['agentGuid']]);
-                        $endpointId = $stmt->fetchColumn();
-                        
-                        // Process vulnerabilities
-                        if (isset($item['vulnerabilities'])) {
-                            foreach ($item['vulnerabilities'] as $vuln) {
-                                // Process vulnerability data
-                                $vulnData = [
-                                    'vulnerabilityId' => $vuln['id'],
-                                    'cveId' => $vuln['cveId'] ?? null,
-                                    'description' => $vuln['description'] ?? null,
-                                    'riskLevel' => $this->mapRiskLevel($vuln['cvssScore'] ?? 0),
-                                    'cvssScore' => $vuln['cvssScore'] ?? null,
-                                    'productName' => $vuln['productName'] ?? null,
-                                    'productVersion' => $vuln['productVersion'] ?? null,
-                                    'lastDetected' => $vuln['lastDetected'] ?? null,
-                                    'status' => 'Active'
-                                ];
-                                
-                                // Insert/Update vulnerability
-                                $this->upsertVulnerability($vulnData);
-                                
-                                // Get vulnerability ID
-                                $stmt = $this->sql->prepare('SELECT id FROM vulnerabilities WHERE vulnerabilityId = :vulnerabilityId');
-                                $stmt->execute([':vulnerabilityId' => $vuln['id']]);
-                                $vulnerabilityId = $stmt->fetchColumn();
-                                
-                                // Link endpoint to vulnerability
-                                $this->linkEndpointVulnerability($endpointId, $vulnerabilityId, $vuln['lastDetected'] ?? null);
-                            }
-                        }
-                    }
-                    
-                    // Update last sync time
-                    $this->updateLastSync();
-                    
-                    // Commit transaction
-                    $this->sql->commit();
-                    
-                    // Return fresh data from database
-                    $vulnerabilities = $this->getAllVulnerabilities();
-                    $stats = $this->getVulnerabilityStats();
-                    
-                    return [
-                        'result' => 'Success',
-                        'data' => [
-                            'items' => $vulnerabilities,
-                            'stats' => $stats
-                        ]
-                    ];
-                    
-                } catch (Exception $e) {
-                    // Roll back transaction on error
-                    $this->sql->rollBack();
-                    throw $e;
-                }
-            }
-            
-            return ['result' => 'Error', 'message' => 'No vulnerability data received from Vision One'];
-            
-        } catch (Exception $e) {
-            return ['result' => 'Error', 'message' => $e->getMessage()];
-        }
-    }
-
-    // Helper function to map CVSS score to risk level
-    private function mapRiskLevel($cvssScore) {
-        $score = floatval($cvssScore);
-        if ($score >= 7.0) return 'HIGH';
-        if ($score >= 4.0) return 'MEDIUM';
-        return 'LOW';
-    }
-
     // Get endpoint details from database
     public function getEndpointDetails($agentGuid) {
         try {
@@ -690,5 +664,13 @@ class TrendVisionOne extends phpef {
         } catch (Exception $e) {
             return ['result' => 'Error', 'message' => $e->getMessage()];
         }
+    }
+
+    // Helper function to map CVSS score to risk level
+    private function mapRiskLevel($cvssScore) {
+        $score = floatval($cvssScore);
+        if ($score >= 7.0) return 'HIGH';
+        if ($score >= 4.0) return 'MEDIUM';
+        return 'LOW';
     }
 }
