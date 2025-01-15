@@ -10,7 +10,7 @@ $GLOBALS['plugins']['TrendVisionOne'] = [ // Plugin Name
 	'author' => 'TinyTechLabUK', // Who wrote the plugin
 	'category' => 'Anti Virus', // One to Two Word Description
 	'link' => 'https://github.com/PHP-EF/plugin-trend-vision-one', // Link to plugin info
-	'version' => '1.0.0.1', // SemVer of plugin
+	'version' => '1.0.0', // SemVer of plugin
 	'image' => 'logo.png', // 1:1 non transparent image for plugin
 	'settings' => true, // does plugin need a settings modal?
 	'api' => '/api/plugin/TrendVisionOne/settings', // api route for settings page, or null if no settings page
@@ -389,7 +389,7 @@ class TrendVisionOne extends phpef {
         }
     }
 
-    public function GetVulnerableDevices() {
+    public function getVulnerableDevices() {
         try {
             if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
                 throw new Exception("Access Denied - Missing READ permissions");
@@ -511,7 +511,7 @@ class TrendVisionOne extends phpef {
         }
     }
 
-    public function GetFullDesktops() {
+    public function getFullDesktops() {
         try {
             if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
                 throw new Exception("Access Denied - Missing READ permissions");
@@ -568,13 +568,13 @@ class TrendVisionOne extends phpef {
             
             return true;
         } catch (Exception $e) {
-            error_log("Error in GetFullDesktops: " . $e->getMessage());
+            error_log("Error in getFullDesktops: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
     }
 
-    public function GetEndpointDetails($endpointId = null) {
+    public function getEndpointDetails($endpointId = null) {
         try {
             if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
                 throw new Exception("Access Denied - Missing READ permissions");
@@ -585,6 +585,45 @@ class TrendVisionOne extends phpef {
                 throw new Exception("Endpoint ID is required");
             }
 
+            // First check if we have it in our database
+            $stmt = $this->sql->prepare('
+                SELECT 
+                    e.*,
+                    COUNT(DISTINCT ev.vulnerabilityId) as vulnerability_count,
+                    MAX(v.lastDetected) as last_vulnerability_detected
+                FROM endpoints e
+                LEFT JOIN endpoint_vulnerabilities ev ON e.id = ev.endpointId
+                LEFT JOIN vulnerabilities v ON ev.vulnerabilityId = v.id
+                WHERE e.agentGuid = :agentGuid
+                GROUP BY e.id
+            ');
+            
+            $stmt->execute([':agentGuid' => $endpointId]);
+            $endpoint = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($endpoint) {
+                // Get vulnerabilities for this endpoint from database
+                $stmt = $this->sql->prepare('
+                    SELECT v.*
+                    FROM vulnerabilities v
+                    JOIN endpoint_vulnerabilities ev ON v.id = ev.vulnerabilityId
+                    JOIN endpoints e ON ev.endpointId = e.id
+                    WHERE e.agentGuid = :agentGuid
+                    AND ev.status = "Active"
+                    ORDER BY v.lastDetected DESC
+                ');
+                
+                $stmt->execute([':agentGuid' => $endpointId]);
+                $vulnerabilities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                $endpoint['vulnerabilities'] = $vulnerabilities;
+                
+                $this->api->setAPIResponse('Success', 'Retrieved endpoint details from database');
+                $this->api->setAPIResponseData($endpoint);
+                return true;
+            }
+
+            // If not in database, get from API
             $endpoint = "endpointSecurity/endpoints/" . urlencode($endpointId);
             $result = $this->makeApiRequest("GET", $endpoint);
             
@@ -605,64 +644,19 @@ class TrendVisionOne extends phpef {
             $details = json_decode(json_encode($result), true);
             
             if (is_array($details)) {
-                $this->api->setAPIResponse('Success', 'Retrieved endpoint details');
+                $this->api->setAPIResponse('Success', 'Retrieved endpoint details from API');
                 $this->api->setAPIResponseData($details);
+                return true;
             } else {
                 error_log("Unexpected response format: " . gettype($result));
                 $this->api->setAPIResponse('Error', 'Unexpected API response structure');
                 return false;
             }
             
-            return true;
         } catch (Exception $e) {
-            error_log("Error in GetEndpointDetails: " . $e->getMessage());
+            error_log("Error in getEndpointDetails: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
-        }
-    }
-
-    // Get endpoint details from database
-    public function getEndpointDetails($agentGuid) {
-        try {
-            $stmt = $this->sql->prepare('
-                SELECT 
-                    e.*,
-                    COUNT(DISTINCT ev.vulnerabilityId) as vulnerability_count,
-                    MAX(v.lastDetected) as last_vulnerability_detected
-                FROM endpoints e
-                LEFT JOIN endpoint_vulnerabilities ev ON e.id = ev.endpointId
-                LEFT JOIN vulnerabilities v ON ev.vulnerabilityId = v.id
-                WHERE e.agentGuid = :agentGuid
-                GROUP BY e.id
-            ');
-            
-            $stmt->execute([':agentGuid' => $agentGuid]);
-            $endpoint = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($endpoint) {
-                // Get vulnerabilities for this endpoint
-                $stmt = $this->sql->prepare('
-                    SELECT v.*
-                    FROM vulnerabilities v
-                    JOIN endpoint_vulnerabilities ev ON v.id = ev.vulnerabilityId
-                    JOIN endpoints e ON ev.endpointId = e.id
-                    WHERE e.agentGuid = :agentGuid
-                    AND ev.status = "Active"
-                    ORDER BY v.lastDetected DESC
-                ');
-                
-                $stmt->execute([':agentGuid' => $agentGuid]);
-                $vulnerabilities = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                $endpoint['vulnerabilities'] = $vulnerabilities;
-                
-                return ['result' => 'Success', 'data' => $endpoint];
-            }
-            
-            return ['result' => 'Error', 'message' => 'Endpoint not found'];
-            
-        } catch (Exception $e) {
-            return ['result' => 'Error', 'message' => $e->getMessage()];
         }
     }
 
