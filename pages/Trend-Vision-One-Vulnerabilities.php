@@ -109,10 +109,14 @@ function loadVulnerabilityData() {
     fetch('/api/plugin/TrendVisionOne/getvulnerabledevices')
         .then(response => response.json())
         .then(data => {
-            if (data.result === 'Success') {
-                updateDashboard(data.data);
+            if (data.result === 'Success' && data.data && data.data.items) {
+                updateDashboard(data.data.items);
             } else {
                 console.error('Failed to load vulnerability data:', data.message);
+                document.getElementById('total-vulnerabilities').textContent = '0';
+                document.getElementById('high-risk-count').textContent = '0';
+                document.getElementById('medium-risk-count').textContent = '0';
+                document.getElementById('low-risk-count').textContent = '0';
             }
         })
         .catch(error => {
@@ -120,22 +124,32 @@ function loadVulnerabilityData() {
         });
 }
 
-function updateDashboard(data) {
-    if (!data || !data.items) return;
+function updateDashboard(items) {
+    if (!items || !Array.isArray(items)) {
+        console.error('Invalid items data:', items);
+        return;
+    }
 
-    const items = data.items;
-    
     // Update statistics
     document.getElementById('total-vulnerabilities').textContent = items.length;
     
-    const riskCounts = items.reduce((acc, item) => {
-        acc[item.riskLevel] = (acc[item.riskLevel] || 0) + 1;
-        return acc;
-    }, {});
+    // Count vulnerabilities by risk level
+    const riskCounts = {
+        'HIGH': 0,
+        'MEDIUM': 0,
+        'LOW': 0
+    };
 
-    document.getElementById('high-risk-count').textContent = riskCounts['HIGH'] || 0;
-    document.getElementById('medium-risk-count').textContent = riskCounts['MEDIUM'] || 0;
-    document.getElementById('low-risk-count').textContent = riskCounts['LOW'] || 0;
+    items.forEach(item => {
+        const riskLevel = item.riskLevel ? item.riskLevel.toUpperCase() : 'UNKNOWN';
+        if (riskCounts.hasOwnProperty(riskLevel)) {
+            riskCounts[riskLevel]++;
+        }
+    });
+
+    document.getElementById('high-risk-count').textContent = riskCounts['HIGH'];
+    document.getElementById('medium-risk-count').textContent = riskCounts['MEDIUM'];
+    document.getElementById('low-risk-count').textContent = riskCounts['LOW'];
 
     // Update table
     const tbody = document.querySelector('#vulnerabilities-table tbody');
@@ -143,15 +157,16 @@ function updateDashboard(data) {
 
     items.forEach(item => {
         const row = document.createElement('tr');
+        const riskLevel = item.riskLevel ? item.riskLevel.toUpperCase() : 'UNKNOWN';
         row.innerHTML = `
-            <td>${escapeHtml(item.endpointName)}</td>
-            <td><span class="risk-${item.riskLevel.toLowerCase()}">${escapeHtml(item.riskLevel)}</span></td>
-            <td>${item.cvssScore}</td>
-            <td>${escapeHtml(item.vulnerabilityId)}</td>
-            <td>${escapeHtml(item.installedProductName)} ${escapeHtml(item.installedProductVersion)}</td>
-            <td>${formatDate(item.lastDetected)}</td>
+            <td>${escapeHtml(item.endpointName || item.displayName || '')}</td>
+            <td><span class="risk-${riskLevel.toLowerCase()}">${escapeHtml(riskLevel)}</span></td>
+            <td>${item.cvssScore || '-'}</td>
+            <td>${escapeHtml(item.vulnerabilityId || '')}</td>
+            <td>${escapeHtml(item.installedProductName || '')} ${escapeHtml(item.installedProductVersion || '')}</td>
+            <td>${formatDate(item.lastDetected || item.lastUsedIp)}</td>
             <td>
-                <button class="btn btn-sm btn-info" onclick="showDetails('${escapeHtml(item.vulnerabilityId)}')">
+                <button class="btn btn-sm btn-info" onclick="showDetails('${escapeHtml(item.endpointName || item.displayName || '')}')">
                     Details
                 </button>
             </td>
@@ -160,14 +175,18 @@ function updateDashboard(data) {
     });
 }
 
-function showDetails(vulnerabilityId) {
-    // Implement vulnerability details modal
-    console.log('Show details for:', vulnerabilityId);
+function showDetails(endpointName) {
+    // TODO: Implement modal with detailed view
+    console.log('Show details for:', endpointName);
 }
 
 function formatDate(dateString) {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleString();
+    try {
+        return new Date(dateString).toLocaleString();
+    } catch (e) {
+        return dateString;
+    }
 }
 
 function escapeHtml(str) {
