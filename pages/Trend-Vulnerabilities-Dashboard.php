@@ -1,5 +1,5 @@
 <?php
-  $plugin = new trendvisiononePlugin();
+  $plugin = new trendvisionone();
   $pluginConfig = $plugin->config->get('Plugins','TrendVisionOne');
   if ($plugin->auth->checkAccess($pluginConfig['ACL-READ'] ?? null) == false) {
     $plugin->api->setAPIResponse('Error','Unauthorized',401);
