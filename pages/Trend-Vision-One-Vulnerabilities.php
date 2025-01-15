@@ -1,9 +1,19 @@
 <?php
-$pageData = [
-    'title' => 'Trend Vision One - Vulnerabilities',
-    'description' => 'View and manage vulnerable devices detected by Trend Vision One',
-];
+$TrendVisionOnePlugin = new TrendVisionOne();
+$pluginConfig = $TrendVisionOnePlugin->config->get('Plugins', 'TrendVisionOne');
+if ($TrendVisionOnePlugin->auth->checkAccess($pluginConfig['ACL-READ'] ?? "ACL-READ") == false) {
+    $TrendVisionOnePlugin->api->setAPIResponse('Error', 'Unauthorized', 401);
+    return false;
+}
 ?>
+
+<!-- Bootstrap Table Dependencies -->
+<link href="https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.css" rel="stylesheet">
+<link href="https://unpkg.com/bootstrap-table@1.20.2/dist/extensions/filter-control/bootstrap-table-filter-control.min.css" rel="stylesheet">
+<script src="https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.js"></script>
+<script src="https://unpkg.com/bootstrap-table@1.20.2/dist/extensions/filter-control/bootstrap-table-filter-control.min.js"></script>
+<script src="https://unpkg.com/bootstrap-table@1.20.2/dist/extensions/export/bootstrap-table-export.min.js"></script>
+<script src="https://unpkg.com/tableexport.jquery.plugin/tableExport.min.js"></script>
 
 <style>
 .risk-high { color: #dc3545; }
