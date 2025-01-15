@@ -109,10 +109,11 @@ function loadVulnerabilityData() {
     fetch('/api/plugin/TrendVisionOne/getvulnerabledevices')
         .then(response => response.json())
         .then(data => {
+            console.log('Raw API response:', data);
             if (data.result === 'Success' && data.data && data.data.items) {
-                updateDashboard(data.data.items);
+                updateDashboard(data.data);
             } else {
-                console.error('Failed to load vulnerability data:', data.message);
+                console.error('Failed to load vulnerability data:', data);
                 document.getElementById('total-vulnerabilities').textContent = '0';
                 document.getElementById('high-risk-count').textContent = '0';
                 document.getElementById('medium-risk-count').textContent = '0';
@@ -124,14 +125,16 @@ function loadVulnerabilityData() {
         });
 }
 
-function updateDashboard(items) {
-    if (!items || !Array.isArray(items)) {
-        console.error('Invalid items data:', items);
+function updateDashboard(data) {
+    if (!data || !data.items || !Array.isArray(data.items)) {
+        console.error('Invalid data structure:', data);
         return;
     }
 
-    // Update statistics
-    document.getElementById('total-vulnerabilities').textContent = items.length;
+    const items = data.items;
+    
+    // Update total count from API response
+    document.getElementById('total-vulnerabilities').textContent = data.totalCount || items.length;
     
     // Count vulnerabilities by risk level
     const riskCounts = {
@@ -141,9 +144,11 @@ function updateDashboard(items) {
     };
 
     items.forEach(item => {
-        const riskLevel = item.riskLevel ? item.riskLevel.toUpperCase() : 'UNKNOWN';
-        if (riskCounts.hasOwnProperty(riskLevel)) {
-            riskCounts[riskLevel]++;
+        if (item.riskLevel) {
+            const risk = item.riskLevel.toUpperCase();
+            if (riskCounts.hasOwnProperty(risk)) {
+                riskCounts[risk]++;
+            }
         }
     });
 
@@ -158,6 +163,7 @@ function updateDashboard(items) {
     items.forEach(item => {
         const row = document.createElement('tr');
         const riskLevel = item.riskLevel ? item.riskLevel.toUpperCase() : 'UNKNOWN';
+        
         row.innerHTML = `
             <td>${escapeHtml(item.endpointName || item.displayName || '')}</td>
             <td><span class="risk-${riskLevel.toLowerCase()}">${escapeHtml(riskLevel)}</span></td>
@@ -166,7 +172,7 @@ function updateDashboard(items) {
             <td>${escapeHtml(item.installedProductName || '')} ${escapeHtml(item.installedProductVersion || '')}</td>
             <td>${formatDate(item.lastDetected || item.lastUsedIp)}</td>
             <td>
-                <button class="btn btn-sm btn-info" onclick="showDetails('${escapeHtml(item.endpointName || item.displayName || '')}')">
+                <button class="btn btn-sm btn-info" onclick="showDetails('${escapeHtml(item.agentGuid || '')}')">
                     Details
                 </button>
             </td>
@@ -175,9 +181,25 @@ function updateDashboard(items) {
     });
 }
 
-function showDetails(endpointName) {
-    // TODO: Implement modal with detailed view
-    console.log('Show details for:', endpointName);
+function showDetails(agentGuid) {
+    if (!agentGuid) {
+        console.error('No agent GUID provided');
+        return;
+    }
+    
+    fetch(`/api/plugin/TrendVisionOne/getendpointdetails/${agentGuid}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.result === 'Success' && data.data) {
+                // TODO: Show modal with detailed information
+                console.log('Endpoint details:', data.data);
+            } else {
+                console.error('Failed to load endpoint details:', data);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading endpoint details:', error);
+        });
 }
 
 function formatDate(dateString) {
