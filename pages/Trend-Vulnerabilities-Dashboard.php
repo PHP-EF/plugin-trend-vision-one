@@ -1,12 +1,12 @@
 <?php
-  $plugin = new trendvisionone();
-  $pluginConfig = $plugin->config->get('Plugins','TrendVisionOne');
-  if ($plugin->auth->checkAccess($pluginConfig['ACL-READ'] ?? null) == false) {
-    $plugin->api->setAPIResponse('Error','Unauthorized',401);
+$trendvisiononeplugin = new trendvisionone();
+$trendvisiononepluginConfig = $trendvisiononeplugin->config->get('Plugins', 'TrendVisionOne');
+if ($trendvisiononeplugin->auth->checkAccess($trendvisiononepluginConfig['ACL-READ'] ?? null) == false) {
+    $trendvisiononeplugin->api->setAPIResponse('Error', 'Unauthorized', 401);
     return false;
-  };
+}
 
-  $content = '
+$content = '
 <div class="container-fluid">
     <div class="row mb-3">
         <div class="col">
@@ -64,7 +64,7 @@ $(document).ready(function() {
 
 function initTable() {
     table = $("#vulnerabilitiesTable").bootstrapTable({
-        url: "/api/plugin/TrendVisionOne/vulnerabilities",
+        url: "/plugin/TrendVisionOne/vulnerabilities", // Ensure this matches the API
         pagination: true,
         search: true,
         sortable: true,
@@ -105,7 +105,7 @@ function syncVulnerabilityData() {
     $("#syncBtn").prop("disabled", true);
     $("#syncBtn i").addClass("fa-spin");
     
-    $.get("/api/plugin/TrendVisionOne/syncvulnerabilities")
+    $.get("/plugin/TrendVisionOne/syncvulnerabilities") // Ensure this matches the API
         .done(function(response) {
             if (response.result === "Success") {
                 table.bootstrapTable("refresh");
@@ -124,7 +124,7 @@ function syncVulnerabilityData() {
 }
 
 function updateLastSyncTime() {
-    $.get("/api/plugin/TrendVisionOne/lastsync")
+    $.get("/plugin/TrendVisionOne/lastsync") // Ensure this matches the API
         .done(function(response) {
             if (response.result === "Success" && response.data) {
                 const date = new Date(response.data * 1000);
@@ -134,7 +134,7 @@ function updateLastSyncTime() {
 }
 
 function showCVEDetails(deviceId) {
-    $.get("/api/plugin/TrendVisionOne/device/" + deviceId + "/vulnerabilities")
+    $.get("/plugin/TrendVisionOne/device/" + deviceId + "/vulnerabilities") // Ensure this matches the API
         .done(function(response) {
             if (response.result === "Success") {
                 let content = \'<div class="table-responsive"><table class="table table-striped">\';

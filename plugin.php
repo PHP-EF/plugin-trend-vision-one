@@ -17,12 +17,12 @@ $GLOBALS['plugins']['TrendVisionOne'] = [ // Plugin Name
 ];
 
 class trendvisionone extends phpef {
-    private $pluginConfig;
+    private $trendvisiononepluginConfig;
     private $sql;
 
     public function __construct() {
         parent::__construct();
-        $this->pluginConfig = $this->config->get('Plugins','TrendVisionOne') ?? [];
+        $this->trendvisiononepluginConfig = $this->config->get('Plugins','TrendVisionOne') ?? [];
         
         // Initialize database connection
         if ($this->initializeDBConnection()) {
@@ -573,5 +573,34 @@ class trendvisionone extends phpef {
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
+    }
+
+    public function getVulnerabilities() {
+        $query = "
+            SELECT d.id, d.device_name, d.criticality, COUNT(cr.id) AS cve_count
+            FROM devices d
+            LEFT JOIN cve_records cr ON d.cve_id = cr.id
+            GROUP BY d.id, d.device_name, d.criticality";
+        
+        $stmt = $this->sql->query($query);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    public function getLastSync() {
+        $stmt = $this->sql->query("SELECT value FROM misc WHERE key = 'last_sync'");
+        return $stmt->fetchColumn();
+    }
+
+    public function getVulnerabilitiesForDevice($deviceId) {
+        $query = "
+            SELECT cr.*
+            FROM device_cve_mapping dcm
+            LEFT JOIN cve_records cr ON dcm.cve_id = cr.id
+            WHERE dcm.device_id = ?
+            ORDER BY cr.cvss_score DESC";
+        
+        $stmt = $this->sql->prepare($query);
+        $stmt->execute([$deviceId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
