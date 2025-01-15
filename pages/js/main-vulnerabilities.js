@@ -748,42 +748,41 @@ $(document).ready(() => {
 // Function to initialize the modal
 async function initializeModal() {
     return new Promise((resolve, reject) => {
-        $(document).ready(async function() {
+        const maxAttempts = 10;
+        let attempts = 0;
+
+        function tryInitialize() {
             try {
                 const modalElement = document.getElementById('vulnerability-details-modal');
                 if (!modalElement) {
                     throw new Error('Modal element not found');
                 }
-
-                // Create modal instance with specific options
+                if (!window.bootstrap) {
+                    throw new Error('Bootstrap not loaded');
+                }
+                
+                // Create modal instance
                 vulnerabilityModal = new bootstrap.Modal(modalElement, {
-                    backdrop: true,
                     keyboard: true,
+                    backdrop: true,
                     focus: true
                 });
-
-                // Add event listener for modal hidden event
-                modalElement.addEventListener('hidden.bs.modal', function() {
-                    // Clear modal content when hidden
-                    $('#modal-endpoint-name').text('');
-                    $('#modal-endpoint-os').text('');
-                    $('#modal-endpoint-ip').text('');
-                    $('#modal-endpoint-last-connected').text('');
-                    $('#modal-vuln-id').text('');
-                    $('#modal-risk-level').text('');
-                    $('#modal-cvss-score').text('');
-                    $('#modal-product').text('');
-                    $('#modal-version').text('');
-                    $('#modal-last-detected').text('');
-                    $('#modal-description').text('');
-                });
-
+                
+                console.log('Modal initialized successfully');
                 resolve(vulnerabilityModal);
             } catch (error) {
-                console.error('Error initializing modal:', error);
-                reject(error);
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    console.error('Failed to initialize modal after', attempts, 'attempts:', error);
+                    reject(error);
+                } else {
+                    console.log('Retrying modal initialization, attempt', attempts);
+                    setTimeout(tryInitialize, 100);
+                }
             }
-        });
+        }
+
+        tryInitialize();
     });
 }
 

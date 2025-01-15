@@ -161,4 +161,5 @@ $pageData = [
 </div>
 
 <!-- Include the vulnerabilities JavaScript -->
-<script src="/plugins/TrendVisionOne/js/main-vulnerabilities.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/main-vulnerabilities.js"></script>
