@@ -5,90 +5,99 @@ $pageData = [
 ];
 ?>
 
-<!-- Custom CSS for the vulnerabilities page -->
 <style>
-.vulnerability-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
+.risk-high { color: #dc3545; }
+.risk-medium { color: #ffc107; }
+.risk-low { color: #28a745; }
 
 .stat-card {
-    background: var(--surface-card);
-    padding: 1rem;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    padding: 20px;
 }
 
 .stat-card h3 {
-    margin: 0;
-    color: var(--text-color);
-    font-size: 1rem;
+    font-size: 1.2rem;
+    margin: 0 0 10px 0;
+    color: #fff;
 }
 
 .stat-card .value {
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: bold;
-    color: var(--primary-color);
+    color: #fff;
 }
 
-.risk-high {
-    color: #dc3545;
-}
-
-.risk-medium {
-    color: #ffc107;
-}
-
-.risk-low {
-    color: #28a745;
-}
+.bg-primary { background-color: #007bff !important; }
+.bg-danger { background-color: #dc3545 !important; }
+.bg-warning { background-color: #ffc107 !important; }
+.bg-success { background-color: #28a745 !important; }
 </style>
 
-<!-- Main content -->
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h2>Vulnerability Overview</h2>
-    </div>
-    <div class="card-body">
-        <!-- Statistics Cards -->
-        <div class="vulnerability-stats">
-            <div class="stat-card">
+<div class="container-fluid">
+    <h1>Vulnerability Overview</h1>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card bg-primary">
                 <h3>Total Vulnerabilities</h3>
                 <div class="value" id="totalVulnerabilities">-</div>
             </div>
-            <div class="stat-card">
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-danger">
                 <h3>High Risk</h3>
-                <div class="value risk-high" id="highRiskCount">-</div>
-            </div>
-            <div class="stat-card">
-                <h3>Medium Risk</h3>
-                <div class="value risk-medium" id="mediumRiskCount">-</div>
-            </div>
-            <div class="stat-card">
-                <h3>Low Risk</h3>
-                <div class="value risk-low" id="lowRiskCount">-</div>
+                <div class="value" id="highRiskCount">-</div>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-warning">
+                <h3>Medium Risk</h3>
+                <div class="value" id="mediumRiskCount">-</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-success">
+                <h3>Low Risk</h3>
+                <div class="value" id="lowRiskCount">-</div>
+            </div>
+        </div>
+    </div>
 
-        <!-- Vulnerabilities Table -->
-        <div class="table-responsive">
-            <table class="table table-striped" id="vulnerabilitiesTable">
+    <!-- Vulnerabilities Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Vulnerability Details</h5>
+        </div>
+        <div class="card-body">
+            <table id="vulnerabilitiesTable"
+                   data-url="/api/plugin/TrendVisionOne/getvulnerabledevices"
+                   data-data-field="items"
+                   data-toggle="table"
+                   data-search="true"
+                   data-filter-control="true"
+                   data-show-filter-control-switch="true"
+                   data-filter-control-visible="false"
+                   data-show-refresh="true"
+                   data-pagination="true"
+                   data-sort-name="riskLevel"
+                   data-sort-order="desc"
+                   data-show-columns="true"
+                   data-page-size="25"
+                   class="table table-striped">
                 <thead>
                     <tr>
-                        <th>Endpoint Name</th>
-                        <th>Risk Level</th>
-                        <th>CVSS Score</th>
-                        <th>Vulnerability ID</th>
-                        <th>Product</th>
-                        <th>Last Detected</th>
-                        <th>Actions</th>
+                        <th data-field="endpointName" data-sortable="true" data-filter-control="input">Endpoint Name</th>
+                        <th data-field="riskLevel" data-sortable="true" data-filter-control="select" data-formatter="riskLevelFormatter">Risk Level</th>
+                        <th data-field="cvssScore" data-sortable="true" data-filter-control="input">CVSS Score</th>
+                        <th data-field="vulnerabilityId" data-sortable="true" data-filter-control="input">Vulnerability ID</th>
+                        <th data-field="productName" data-sortable="true" data-filter-control="input" data-formatter="productFormatter">Product</th>
+                        <th data-field="lastDetected" data-sortable="true" data-filter-control="input" data-formatter="dateFormatter">Last Detected</th>
+                        <th data-formatter="actionFormatter" data-events="actionEvents">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- Data will be populated by DataTables -->
-                </tbody>
             </table>
         </div>
     </div>
@@ -103,7 +112,6 @@ $pageData = [
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Content will be populated by JavaScript -->
                 <div class="vulnerability-info">
                     <h6>Endpoint Information</h6>
                     <div class="row mb-3">
@@ -144,80 +152,38 @@ $pageData = [
     </div>
 </div>
 
-<!-- Include DataTables -->
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
-<script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+<!-- Include Bootstrap Table -->
+<link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.css">
+<script src="https://unpkg.com/bootstrap-table@1.20.2/dist/bootstrap-table.min.js"></script>
+<script src="https://unpkg.com/bootstrap-table@1.20.2/dist/extensions/filter-control/bootstrap-table-filter-control.min.js"></script>
 
-<!-- Initialize DataTable -->
 <script>
-$(document).ready(function() {
-    var table = $('#vulnerabilitiesTable').DataTable({
-        "processing": true,
-        "serverSide": false,
-        "ajax": {
-            "url": "/api/plugin/TrendVisionOne/getvulnerabledevices",
-            "type": "GET",
-            "dataSrc": function(json) {
-                // Update statistics
-                if (json.stats) {
-                    $('#totalVulnerabilities').text(json.stats.total || 0);
-                    $('#highRiskCount').text(json.stats.high || 0);
-                    $('#mediumRiskCount').text(json.stats.medium || 0);
-                    $('#lowRiskCount').text(json.stats.low || 0);
-                }
-                return json.items || [];
-            }
-        },
-        "columns": [
-            { "data": "endpointName" },
-            { 
-                "data": "riskLevel",
-                "render": function(data, type, row) {
-                    const riskClass = {
-                        'HIGH': 'risk-high',
-                        'MEDIUM': 'risk-medium',
-                        'LOW': 'risk-low'
-                    }[data] || '';
-                    return `<span class="${riskClass}">${data}</span>`;
-                }
-            },
-            { "data": "cvssScore" },
-            { "data": "vulnerabilityId" },
-            { 
-                "data": null,
-                "render": function(data, type, row) {
-                    return `${data.productName || ''} ${data.productVersion || ''}`.trim() || '-';
-                }
-            },
-            { 
-                "data": "lastDetected",
-                "render": function(data, type, row) {
-                    if (!data) return '-';
-                    return new Date(data).toLocaleString('en-GB');
-                }
-            },
-            {
-                "data": null,
-                "orderable": false,
-                "render": function(data, type, row) {
-                    return `<button class="btn btn-sm btn-primary view-details" data-id="${data.agentGuid}" data-vuln-id="${data.vulnerabilityId}">Details</button>`;
-                }
-            }
-        ],
-        "order": [[1, "desc"]], // Sort by risk level by default
-        "pageLength": 25,
-        "responsive": true
-    });
+// Formatters for the table
+function riskLevelFormatter(value, row) {
+    const riskClass = {
+        'HIGH': 'risk-high',
+        'MEDIUM': 'risk-medium',
+        'LOW': 'risk-low'
+    }[value] || '';
+    return `<span class="${riskClass}">${value}</span>`;
+}
 
-    // Handle vulnerability details button click
-    $('#vulnerabilitiesTable').on('click', '.view-details', function() {
-        var agentGuid = $(this).data('id');
-        var vulnId = $(this).data('vuln-id');
-        
+function productFormatter(value, row) {
+    return `${value || ''} ${row.productVersion || ''}`.trim() || '-';
+}
+
+function dateFormatter(value) {
+    if (!value) return '-';
+    return new Date(value).toLocaleString('en-GB');
+}
+
+function actionFormatter(value, row) {
+    return `<button class="btn btn-sm btn-primary view-details" data-id="${row.agentGuid}" data-vuln-id="${row.vulnerabilityId}">Details</button>`;
+}
+
+// Event handlers
+window.actionEvents = {
+    'click .view-details': function (e, value, row) {
         // Show modal
         var modal = new bootstrap.Modal(document.getElementById('vulnerabilityDetailsModal'));
         modal.show();
@@ -226,11 +192,11 @@ $(document).ready(function() {
         $.ajax({
             url: '/api/plugin/TrendVisionOne/getendpointdetails',
             method: 'GET',
-            data: { endpointId: agentGuid },
+            data: { endpointId: row.agentGuid },
             success: function(response) {
                 if (response.result === 'Success' && response.data) {
                     const endpoint = response.data;
-                    const vulnerability = endpoint.vulnerabilities.find(v => v.id === vulnId) || {};
+                    const vulnerability = endpoint.vulnerabilities.find(v => v.id === row.vulnerabilityId) || {};
                     
                     // Update modal content
                     $('#modal-endpoint-name').text(endpoint.endpointName || '-');
@@ -253,11 +219,23 @@ $(document).ready(function() {
                 `);
             }
         });
+    }
+};
+
+// Update statistics when data is loaded
+$(function() {
+    $('#vulnerabilitiesTable').on('load-success.bs.table', function (e, data) {
+        if (data.stats) {
+            $('#totalVulnerabilities').text(data.stats.total || 0);
+            $('#highRiskCount').text(data.stats.high || 0);
+            $('#mediumRiskCount').text(data.stats.medium || 0);
+            $('#lowRiskCount').text(data.stats.low || 0);
+        }
     });
 
     // Refresh data every 5 minutes
     setInterval(function() {
-        table.ajax.reload(null, false);
+        $('#vulnerabilitiesTable').bootstrapTable('refresh');
     }, 300000);
 });
 </script>
