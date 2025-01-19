@@ -37,134 +37,100 @@ function updateEndpointSummary(endpoints) {
     $('#outdatedComponents').text(outdatedComponents);
 }
 
-// Function to update the Trend Vision One endpoints table
-function updateEndpointsTable() {
-    $.ajax({
+function EndpointViewButtonFormatter(value, row, index) {
+    return `<button class="btn btn-sm btn-info details" data-id="${row.agentGuid}">
+              <i class="fas fa-eye"></i> View Details
+            </button>`;
+}
+
+function StatusFormatter(value, row) {
+    const isOnline = row.agentUpdateStatus === 'onSchedule';
+    return `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
+}
+
+function ComponentVersionFormatter(value, row) {
+    const componentVersion = row.eppAgent?.componentVersion || '-';
+    const componentVersionClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
+    return `<span class="badge ${componentVersionClass}">${componentVersion}</span>`;
+}
+
+// Initialize the endpoints table using Bootstrap Table
+function initEndpointsTable() {
+    $('#trendEndpointsTable').bootstrapTable({
         url: '/api/plugin/TrendVisionOne/getfulldesktops?top=1000',
         method: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            console.log('API Response:', response);
-            
-            if (response && response.result === 'Success' && response.data && response.data.items && Array.isArray(response.data.items.items)) {
-                const endpoints = response.data.items.items;
-                
-                // Update summary boxes
+        pagination: true,
+        search: true,
+        sortable: true,
+        responseHandler: function(res) {
+            if (res && res.result === 'Success' && res.data && res.data.items && Array.isArray(res.data.items.items)) {
+                const endpoints = res.data.items.items;
                 updateEndpointSummary(endpoints);
-                
-                // Update endpoint group filter
-                updateEndpointGroupFilter(endpoints);
-                
-                // Filter endpoints based on selected group
-                const selectedGroup = $('#endpointGroupFilter').val();
-                const filteredEndpoints = selectedGroup ? 
-                    endpoints.filter(endpoint => (endpoint.eppAgent?.endpointGroup || '-') === selectedGroup) : 
-                    endpoints;
-                
-                const tableBody = $('#trendEndpointsTable tbody');
-                tableBody.empty();
-
-                if (filteredEndpoints.length === 0) {
-                    tableBody.html(`
-                        <tr>
-                            <td colspan="8" class="text-center">
-                                No endpoints available
-                            </td>
-                        </tr>
-                    `);
-                    return;
-                }
-
-                filteredEndpoints.forEach((endpoint, index) => {
-                    const row = $('<tr>');
-                    console.log(`Processing endpoint ${index}:`, endpoint);
-
-                    row.append(`<td>${endpoint.displayName || '-'}</td>`);
-                    row.append(`<td>${endpoint.os?.name || endpoint.osName || '-'}</td>`);
-                    row.append(`<td>${endpoint.lastUsedIp || '-'}</td>`);
-                    row.append(`<td>${endpoint.eppAgent?.endpointGroup || '-'}</td>`);
-                    row.append(`<td>${formatDateTime(endpoint.eppAgent?.lastConnectedDateTime)}</td>`);
-                    
-                    // Status column with badge
-                    const isOnline = endpoint.agentUpdateStatus === 'onSchedule';
-                    const statusBadge = `<span class="${getEndpointStatusBadgeClass(isOnline)}">${isOnline ? 'Online' : 'Offline'}</span>`;
-                    row.append(`<td>${statusBadge}</td>`);
-                    
-                    // Component Version column with badge
-                    const componentVersion = endpoint.eppAgent?.componentVersion || '-';
-                    const componentVersionClass = componentVersion.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success';
-                    row.append(`<td><span class="badge ${componentVersionClass}">${componentVersion}</span></td>`);
-                    
-                    // Actions column with details button
-                    const detailsButton = `
-                        <button class="btn btn-sm btn-info" 
-                                onclick='showEndpointDetails("${endpoint.agentGuid}")'>
-                            <i class="fas fa-info-circle"></i> Details
-                        </button>`;
-                    row.append(`<td>${detailsButton}</td>`);
-                    
-                    tableBody.append(row);
-                });
-            } else {
-                console.error('Invalid response structure:', response);
-                $('#trendEndpointsTable tbody').html(`
-                    <tr>
-                        <td colspan="8" class="text-center">
-                            ${response.message || 'Error loading endpoints'}
-                        </td>
-                    </tr>
-                `);
+                return endpoints;
             }
+            return [];
         },
-        error: function(xhr, status, error) {
-            console.error('Error:', error);
-            console.error('Status:', status);
-            console.error('Response:', xhr.responseText);
-            
-            $('#trendEndpointsTable tbody').html(`
-                <tr>
-                    <td colspan="8" class="text-center text-danger">
-                        <i class="fas fa-exclamation-triangle"></i> Error loading endpoints data
-                    </td>
-                </tr>
-            `);
-        }
+        columns: [{
+            field: 'displayName',
+            title: 'Endpoint Name',
+            sortable: true
+        }, {
+            field: 'os.name',
+            title: 'Operating System',
+            sortable: true,
+            formatter: function(value, row) {
+                return row.os?.name || row.osName || '-';
+            }
+        }, {
+            field: 'lastUsedIp',
+            title: 'IP Address',
+            sortable: true,
+            formatter: function(value) {
+                return value || '-';
+            }
+        }, {
+            field: 'eppAgent.endpointGroup',
+            title: 'Endpoint Group',
+            sortable: true,
+            formatter: function(value) {
+                return value || '-';
+            }
+        }, {
+            field: 'eppAgent.lastConnectedDateTime',
+            title: 'Last Connected',
+            sortable: true,
+            formatter: formatDateTime
+        }, {
+            field: 'agentUpdateStatus',
+            title: 'Status',
+            sortable: true,
+            formatter: StatusFormatter
+        }, {
+            field: 'eppAgent.componentVersion',
+            title: 'Component Version',
+            sortable: true,
+            formatter: ComponentVersionFormatter
+        }, {
+            field: 'actions',
+            title: 'Actions',
+            formatter: EndpointViewButtonFormatter,
+            events: window.EndpointDetailsButtonEvents
+        }]
     });
 }
 
-// Function to update endpoint group filter dropdown
-function updateEndpointGroupFilter(endpoints) {
-    const groups = new Set(endpoints.map(endpoint => endpoint.eppAgent?.endpointGroup || '-'));
-    const filterSelect = $('#endpointGroupFilter');
-    
-    // Save current selection
-    const currentSelection = filterSelect.val();
-    
-    // Clear and rebuild options
-    filterSelect.empty();
-    filterSelect.append('<option value="">All Groups</option>');
-    
-    // Add sorted groups
-    Array.from(groups)
-        .sort()
-        .forEach(group => {
-            filterSelect.append(`<option value="${group}">${group}</option>`);
-        });
-    
-    // Restore selection if it still exists in the new options
-    if (currentSelection && groups.has(currentSelection)) {
-        filterSelect.val(currentSelection);
+window.EndpointDetailsButtonEvents = {
+    'click .details': function(e, value, row, index) {
+        showEndpointDetails(row.agentGuid);
     }
-}
+};
 
-// Function to show endpoint details in modal
 function showEndpointDetails(endpointId) {
-    $.ajax({
-        url: `/api/plugin/TrendVisionOne/getendpointdetails/${endpointId}`,
-        method: 'GET',
-        success: function(response) {
+    queryAPI('GET', '/api/plugin/TrendVisionOne/getendpointdetails/' + endpointId)
+        .then(function(response) {
             if (response.result === 'Success' && response.data) {
                 const data = response.data;
+                
                 // General Information
                 $('#agentGuid').text(data.agentGuid || '-');
                 $('#displayName').text(data.displayName || '-');
@@ -222,110 +188,158 @@ function showEndpointDetails(endpointId) {
                     .removeClass('bg-success bg-danger')
                     .addClass(eppData.componentVersion?.toLowerCase() === 'outdatedversion' ? 'bg-danger' : 'bg-success');
                 
-                endpointModal.show();
+                // Show the modal
+                $('#endpointDetailsModal').modal('show');
             } else {
-                console.error('Error loading endpoint details:', response);
-                toastr.error('Failed to load endpoint details: ' + response.message);
+                console.error('Failed to fetch endpoint details:', response);
+                alert('Failed to fetch endpoint details. Please try again.');
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error loading endpoint details:', error);
-            toastr.error('Failed to load endpoint details');
-        }
-    });
+        })
+        .catch(function(error) {
+            console.error('Error fetching endpoint details:', error);
+            alert('Error fetching endpoint details. Please try again.');
+        });
 }
 
-// Function to get appropriate badge class for endpoint status
 function getEndpointStatusBadgeClass(isOnline) {
-    return isOnline ? 'badge bg-success text-white' : 'badge bg-danger text-white';
+    return `badge ${isOnline ? 'bg-success' : 'bg-danger'}`;
 }
 
-// Initialize Bootstrap modal for endpoints
-let endpointModal;
-$(document).ready(function() {
-    endpointModal = new bootstrap.Modal(document.getElementById('endpointDetailsModal'));
-});
-
-// Initial setup
-$(document).ready(function() {
-    // Handle filter icon click
-    $('#endpointGroupFilterIcon').click(function(e) {
-        e.stopPropagation();
-        const container = $('#endpointGroupFilterContainer');
-        container.toggle();
-        
-        if (container.is(':visible')) {
-            $('#endpointGroupFilter').focus();
-        }
-    });
-
-    // Close filter dropdown when clicking outside
-    $(document).click(function(e) {
-        if (!$(e.target).closest('#endpointGroupFilterContainer').length && 
-            !$(e.target).closest('#endpointGroupFilterIcon').length) {
-            $('#endpointGroupFilterContainer').hide();
-        }
-    });
-
-    // Add filter change handler
-    $('#endpointGroupFilter').on('change', function() {
-        const selectedValue = $(this).val();
-        updateEndpointsTable();
-        // Add active class to icon when filter is applied
-        $('#endpointGroupFilterIcon').toggleClass('text-primary', selectedValue !== '');
-        $('#endpointGroupFilterContainer').hide();
-    });
-
-    // Initial load of endpoints data
-    updateEndpointsTable();
+// Handle refresh button click
+$('#refreshTable').click(function() {
+    const $btn = $(this);
+    const $icon = $btn.find('i');
     
-    // Refresh data every 1 hour
-    setInterval(updateEndpointsTable, 3600000);
+    $btn.prop('disabled', true);
+    $icon.addClass('fa-spin');
+    
+    $('#trendEndpointsTable').bootstrapTable('refresh')
+        .then(function() {
+            const now = new Date();
+            $('#lastRefreshTime').text('Last refreshed: ' + now.toLocaleString());
+        })
+        .catch(function(error) {
+            console.error('Error refreshing data:', error);
+            alert('Error refreshing data. Please try again.');
+        })
+        .finally(function() {
+            $btn.prop('disabled', false);
+            $icon.removeClass('fa-spin');
+        });
 });
+
+// Initialize on document ready
+$(document).ready(function() {
+    initEndpointsTable();
+    const now = new Date();
+    $('#lastRefreshTime').text('Last refreshed: ' + now.toLocaleString());
+});
+
+////// All new code for Vulns Dashboard DON'T EDIT PAST THIS POINT
+// Function for action formatter for the table
+function VulnerabilityViewButtonFormatter(value, row, index) {
+    var actions = [
+        '<button class="btn details btn-info btn-sm">View Details</button>'
+    ];
+    return actions.join("");
+}
+
+window.DeviceDetailsButtonEvents = {
+    "click .details": function (e, value, row, index) {
+        initCVETable(row);
+        $('#cveDetailsModal').modal('show');
+    }
+}
+window.CVEDetailsButtonEvents = {
+    "click .details": function (e, value, row, index) {
+        CVEDetailsPopulate(row);
+    }
+}
+
+function MainTableHandler(data){
+    $("#HighSeverity").text(data.data.severity_counts.high)
+    $("#MediumSeverity").text(data.data.severity_counts.medium)
+    $("#LowSeverity").text(data.data.severity_counts.low)
+    return data.data.devices;
+}
+
+// Function to sync vulnerability data
+function syncVulnerabilityData() {
+    const $btn = $('#syncBtn');
+    const $icon = $btn.find('i');
+    
+    // Disable button and show loading state
+    $btn.prop('disabled', true);
+    $icon.addClass('fa-spin');
+    
+    queryAPI('GET', '/api/plugin/TrendVisionOne/syncvulnerabilities')
+        .then(function(response) {
+            if (response.result === 'Success') {
+                // Update last sync time
+                $('#lastSyncTime').text('Last synced: ' + formatDateTime('2025-01-19T20:27:31Z'));
+                // Refresh the vulnerability table if it exists
+                if (typeof MainTableHandler === 'function') {
+                    MainTableHandler();
+                }
+            } else {
+                console.error('Sync failed:', response.message);
+                alert('Failed to sync vulnerability data: ' + (response.message || 'Please try again.'));
+            }
+        })
+        .catch(function(error) {
+            console.error('Sync error:', error);
+            alert('Error syncing vulnerability data. Please try again.');
+        })
+        .finally(function() {
+            // Re-enable button and remove loading state
+            $btn.prop('disabled', false);
+            $icon.removeClass('fa-spin');
+        });
+}
 
 // Add custom styles
-$('<style>')
-    .text(`
-        .progress {
-            height: 20px;
-            margin-bottom: 0;
-        }
-        .progress-bar {
-            min-width: 2em;
-        }
-        .table td {
-            vertical-align: middle;
-        }
-        .table th {
-            padding: 0.75rem;
-            vertical-align: middle;
-        }
-        .filter-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            z-index: 1000;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            padding: 0.5rem;
-            min-width: 200px;
-            margin-top: 0.25rem;
-        }
-        #endpointGroupFilter {
-            font-size: 0.875rem;
-            padding: 0.25rem;
-            width: 100%;
-        }
-        #endpointGroupFilterIcon {
-            transition: color 0.2s;
-        }
-        #endpointGroupFilterIcon:hover {
-            color: #0d6efd !important;
-        }
-        #endpointGroupFilterIcon.text-primary {
-            color: #0d6efd !important;
-        }
-    `)
-    .appendTo('head');
+// $('<style>')
+//     .text(`
+//         .progress {
+//             height: 20px;
+//             margin-bottom: 0;
+//         }
+//         .progress-bar {
+//             min-width: 2em;
+//         }
+//         .table td {
+//             vertical-align: middle;
+//         }
+//         .table th {
+//             padding: 0.75rem;
+//             vertical-align: middle;
+//         }
+//         .filter-dropdown {
+//             position: absolute;
+//             top: 100%;
+//             left: 0;
+//             z-index: 1000;
+//             background: white;
+//             border: 1px solid #dee2e6;
+//             border-radius: 0.25rem;
+//             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+//             padding: 0.5rem;
+//             min-width: 200px;
+//             margin-top: 0.25rem;
+//         }
+//         #endpointGroupFilter {
+//             font-size: 0.875rem;
+//             padding: 0.25rem;
+//             width: 100%;
+//         }
+//         #endpointGroupFilterIcon {
+//             transition: color 0.2s;
+//         }
+//         #endpointGroupFilterIcon:hover {
+//             color: #0d6efd !important;
+//         }
+//         #endpointGroupFilterIcon.text-primary {
+//             color: #0d6efd !important;
+//         }
+//     `)
+//     .appendTo('head');

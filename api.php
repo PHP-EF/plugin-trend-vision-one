@@ -48,7 +48,7 @@ $app->get('/plugin/TrendVisionOne/getendpointdetails/{id}', function ($request, 
 // Get Vulnerable Devices
 $app->get('/plugin/TrendVisionOne/getvulnerabledevices', function ($request, $response, $args) {
     $TrendVisionOne = new TrendVisionOne();
-    $TrendVisionOne->GetVulnerableDevices();
+    $TrendVisionOne->GetAllVulnerableDevices();
     $response->getBody()->write(jsonE($GLOBALS['api']));
     return $response
         ->withHeader('Content-Type', 'application/json;charset=UTF-8')
@@ -87,6 +87,10 @@ $app->get('/plugin/TrendVisionOne/vulnerabilities', function ($request, $respons
             $GLOBALS['responseCode'] = 500;
         }
     }
+    $response->getBody()->write(jsonE($GLOBALS['api']));
+    return $response
+        ->withHeader('Content-Type', 'application/json;charset=UTF-8')
+        ->withStatus($GLOBALS['responseCode']);
 });
 
 // Get vulnerabilities for specific device
@@ -94,13 +98,41 @@ $app->get('/plugin/TrendVisionOne/device/{id}/vulnerabilities', function ($reque
     $trendvisiononeplugin = new trendvisionone();
     if ($trendvisiononeplugin->auth->checkAccess($trendvisiononeplugin->config->get('Plugins','TrendVisionOne')['ACL-READ'] ?? null)) {
         try {
+            error_log("[TrendVisionOne] API: Getting vulnerabilities for device: " . $args['id']);
             $data = $trendvisiononeplugin->getVulnerabilitiesForDevice($args['id']);
-            $trendvisiononeplugin->api->setAPIResponseData($data);
+            if (!empty($data)) {
+                $trendvisiononeplugin->api->setAPIResponseData($data);
+            }
+        } catch (Exception $e) {
+            error_log("[TrendVisionOne] API Error: " . $e->getMessage());
+            $trendvisiononeplugin->api->setAPIResponse('Error', $e->getMessage());
+            $GLOBALS['responseCode'] = 500;
+        }
+    }
+    $response->getBody()->write(jsonE($GLOBALS['api']));
+    return $response
+        ->withHeader('Content-Type', 'application/json;charset=UTF-8')
+        ->withStatus($GLOBALS['responseCode']);
+});
+
+// Get vulnerabilities for specific device from database
+$app->get('/plugin/TrendVisionOne/vulnerabilities/{device_id}', function ($request, $response, $args) {
+    $trendvisiononeplugin = new trendvisionone();
+    if ($trendvisiononeplugin->auth->checkAccess($trendvisiononeplugin->config->get('Plugins','TrendVisionOne')['ACL-READ'] ?? null)) {
+        try {
+            $data = $trendvisiononeplugin->getVulnerabilitiesForDevice($args['device_id']);
+            if (!empty($data)) {
+                $trendvisiononeplugin->api->setAPIResponseData($data);
+            }
         } catch (Exception $e) {
             $trendvisiononeplugin->api->setAPIResponse('Error', $e->getMessage());
             $GLOBALS['responseCode'] = 500;
         }
     }
+    $response->getBody()->write(jsonE($GLOBALS['api']));
+    return $response
+        ->withHeader('Content-Type', 'application/json;charset=UTF-8')
+        ->withStatus($GLOBALS['responseCode']);
 });
 
 // Get last sync time
@@ -115,4 +147,29 @@ $app->get('/plugin/TrendVisionOne/lastsync', function ($request, $response, $arg
             $GLOBALS['responseCode'] = 500;
         }
     }
+    $response->getBody()->write(jsonE($GLOBALS['api']));
+    return $response
+        ->withHeader('Content-Type', 'application/json;charset=UTF-8')
+        ->withStatus($GLOBALS['responseCode']);
+});
+
+// Get vulnerability dashboard data
+$app->get('/plugin/TrendVisionOne/dashboard', function ($request, $response, $args) {
+    $trendvisiononeplugin = new trendvisionone();
+    if ($trendvisiononeplugin->auth->checkAccess($trendvisiononeplugin->config->get('Plugins','TrendVisionOne')['ACL-READ'] ?? null)) {
+        try {
+            $data = $trendvisiononeplugin->getVulnerabilities();
+            if (!empty($data)) {
+                $trendvisiononeplugin->api->setAPIResponseData($data);
+            }
+        } catch (Exception $e) {
+            error_log("[TrendVisionOne] API Error: " . $e->getMessage());
+            $trendvisiononeplugin->api->setAPIResponse('Error', $e->getMessage());
+            $GLOBALS['responseCode'] = 500;
+        }
+    }
+    $response->getBody()->write(jsonE($GLOBALS['api']));
+    return $response
+        ->withHeader('Content-Type', 'application/json;charset=UTF-8')
+        ->withStatus($GLOBALS['responseCode']);
 });

@@ -12,7 +12,17 @@
 <script type="text/javascript" src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 
 <div class="container-fluid">
-    <h1>Trend Vision One Overview</h1>
+    <div class="row mb-3">
+        <div class="col">
+            <h1>Trend Vision One Overview</h1>
+        </div>
+        <div class="col-auto">
+            <span id="lastRefreshTime" class="text-muted me-2"></span>
+            <button id="refreshTable" class="btn btn-primary ms-2">
+                <i class="fas fa-sync"></i> Refresh Data
+            </button>
+        </div>
+    </div>
     
     <!-- Summary Boxes -->
     <div class="row mb-4">
@@ -21,6 +31,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Total Endpoints</h5>
                     <h2 id="totalEndpoints">-</h2>
+                    <p class="card-text">Total managed endpoints</p>
                 </div>
             </div>
         </div>
@@ -29,6 +40,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Client Workloads</h5>
                     <h2 id="clientWorkloads">-</h2>
+                    <p class="card-text">Active client endpoints</p>
                 </div>
             </div>
         </div>
@@ -37,6 +49,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Server Workloads</h5>
                     <h2 id="serverWorkloads">-</h2>
+                    <p class="card-text">Active server endpoints</p>
                 </div>
             </div>
         </div>
@@ -45,6 +58,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Outdated Components</h5>
                     <h2 id="outdatedComponents">-</h2>
+                    <p class="card-text">Components needing updates</p>
                 </div>
             </div>
         </div>
@@ -55,12 +69,6 @@
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Trend Vision One Endpoints</h5>
-                <div>
-                    <span id="lastRefreshTime" class="text-muted me-2"></span>
-                    <button id="refreshTable" class="btn btn-primary">
-                        <i class="fas fa-sync"></i> Refresh Data
-                    </button>
-                </div>
             </div>
         </div>
         <div class="card-body">
