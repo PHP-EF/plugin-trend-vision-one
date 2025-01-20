@@ -93,8 +93,9 @@ function initTable() {
             title: "IP Addresses",
             formatter: function(value) {
                 if (!Array.isArray(value)) return "";
+                // Filter for IPv4 addresses and take only the first one
                 var ipv4Only = value.filter(function(ip) { return !ip.includes(":"); });
-                return ipv4Only.join(", ");
+                return ipv4Only.length > 0 ? ipv4Only[0] : "";
             }
         }, {
             field: "cve_count",
