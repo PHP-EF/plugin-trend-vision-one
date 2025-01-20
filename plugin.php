@@ -3,26 +3,26 @@
 // **
 // USED TO DEFINE PLUGIN INFORMATION & CLASS
 // **
-
+ini_set("memory_limit","512M");
 // PLUGIN INFORMATION - This should match what is in plugin.json
 $GLOBALS['plugins']['TrendVisionOne'] = [ // Plugin Name
     'name' => 'TrendVisionOne', // Plugin Name
     'author' => 'TinyTechLabUK', // Who wrote the plugin
     'category' => 'Anti Virus', // One to Two Word Description
-    'link' => 'https://github.com/PHP-EF/plugin-trend-vision-one', // Link to plugin info
-    'version' => '1.0.0.1', // SemVer of plugin
+    'link' => 'https://github.com/PHP-EF/plugin-trend_vision_one', // Link to plugin info
+    'version' => '1.0.1', // SemVer of plugin
     'image' => 'logo.png', // 1:1 non transparent image for plugin
     'settings' => true, // does plugin need a settings modal?
     'api' => '/api/plugin/TrendVisionOne/settings', // api route for settings page, or null if no settings page
 ];
 
 class trendvisionone extends phpef {
-    private $pluginConfig;
+    private $trendvisiononepluginConfig;
     private $sql;
 
     public function __construct() {
         parent::__construct();
-        $this->pluginConfig = $this->config->get('Plugins','TrendVisionOne') ?? [];
+        $this->trendvisiononepluginConfig = $this->config->get('Plugins','TrendVisionOne') ?? [];
         
         // Initialize database connection
         if ($this->initializeDBConnection()) {
@@ -63,40 +63,55 @@ class trendvisionone extends phpef {
     // Initialize database and create tables if they don't exist
     public function initializeDB() {
         try {
+            // Create misc table for storing plugin metadata
+            $this->sql->exec("CREATE TABLE IF NOT EXISTS misc (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now'))
+            )");
+
+            // Insert last_sync key if it doesn't exist
+            $stmt = $this->sql->prepare("INSERT OR IGNORE INTO misc (key, value) VALUES ('last_sync', datetime('now'))");
+            $stmt->execute();
+
             // Create devices table
             $this->sql->exec("CREATE TABLE IF NOT EXISTS devices (
-                id VARCHAR(36) PRIMARY KEY,
-                device_name VARCHAR(255),
-                criticality VARCHAR(50),
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                id TEXT PRIMARY KEY,
+                device_name TEXT NOT NULL,
+                criticality TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now'))
             )");
 
             // Create device_ips table
             $this->sql->exec("CREATE TABLE IF NOT EXISTS device_ips (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                device_id VARCHAR(36),
-                ip_address VARCHAR(45),
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                device_id TEXT,
+                ip_address TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')),
+                PRIMARY KEY (device_id, ip_address),
                 FOREIGN KEY (device_id) REFERENCES devices(id)
             )");
 
             // Create cve_records table
             $this->sql->exec("CREATE TABLE IF NOT EXISTS cve_records (
-                id VARCHAR(50) PRIMARY KEY,
-                cvss_score FLOAT,
-                event_risk_level VARCHAR(50),
-                global_exploit_activity_level VARCHAR(50),
-                exploit_attempt_count INTEGER,
-                mitigation_status VARCHAR(50),
-                published_datetime DATETIME,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                id TEXT PRIMARY KEY,
+                cvss_score REAL DEFAULT 0.0,
+                event_risk_level TEXT,
+                description TEXT,
+                global_exploit_activity_level TEXT,
+                exploit_attempt_count INTEGER DEFAULT 0,
+                mitigation_status TEXT,
+                published_datetime TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now'))
             )");
 
             // Create device_cve_mapping table
             $this->sql->exec("CREATE TABLE IF NOT EXISTS device_cve_mapping (
-                device_id VARCHAR(36),
-                cve_id VARCHAR(50),
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                device_id TEXT,
+                cve_id TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
                 PRIMARY KEY (device_id, cve_id),
                 FOREIGN KEY (device_id) REFERENCES devices(id),
                 FOREIGN KEY (cve_id) REFERENCES cve_records(id)
@@ -104,38 +119,26 @@ class trendvisionone extends phpef {
 
             // Create affected_components table
             $this->sql->exec("CREATE TABLE IF NOT EXISTS affected_components (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cve_id VARCHAR(50),
-                component_name VARCHAR(255),
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                cve_id TEXT,
+                component_name TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')),
+                PRIMARY KEY (cve_id, component_name),
                 FOREIGN KEY (cve_id) REFERENCES cve_records(id)
             )");
 
             // Create linux_remediations table
             $this->sql->exec("CREATE TABLE IF NOT EXISTS linux_remediations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cve_id VARCHAR(50),
-                package_name VARCHAR(255),
-                minimum_patched_version VARCHAR(255),
-                product_distribution VARCHAR(255),
-                release_date DATE,
-                security_advisory_id VARCHAR(50),
+                cve_id TEXT,
+                package_name TEXT NOT NULL,
+                minimum_patched_version TEXT,
+                product_distribution TEXT,
+                release_date TEXT,
+                security_advisory_id TEXT,
                 security_advisory_link TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TEXT DEFAULT (datetime('now')),
+                PRIMARY KEY (cve_id, package_name),
                 FOREIGN KEY (cve_id) REFERENCES cve_records(id)
             )");
-
-            // Create misc table for storing last sync time and other metadata
-            $this->sql->exec("CREATE TABLE IF NOT EXISTS misc (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                key TEXT UNIQUE,
-                value TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )");
-
-            // Initialize last sync time if not exists
-            $this->sql->exec('INSERT OR IGNORE INTO misc (key, value) VALUES ("last_sync", "0")');
 
             // Create indexes for better query performance
             $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_device_ips_device_id ON device_ips(device_id);');
@@ -143,10 +146,8 @@ class trendvisionone extends phpef {
             $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_device_cve_mapping_cve_id ON device_cve_mapping(cve_id);');
             $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_affected_components_cve_id ON affected_components(cve_id);');
             $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_linux_remediations_cve_id ON linux_remediations(cve_id);');
-            $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_cve_records_cvss ON cve_records(cvss_score);');
-            $this->sql->exec('CREATE INDEX IF NOT EXISTS idx_cve_records_risk ON cve_records(event_risk_level);');
 
-            error_log("[TrendVisionOne] Database tables created/verified successfully");
+            // error_log("[TrendVisionOne] Database tables created/verified successfully");
             return true;
         } catch (PDOException $e) {
             error_log("[TrendVisionOne] Database Error: " . $e->getMessage());
@@ -190,28 +191,28 @@ class trendvisionone extends phpef {
             $url .= '?' . http_build_query($params);
         }
         
-        error_log("Full API URL: " . $url);
+        // error_log("Full API URL: " . $url);
         return $url;
     }
 
         //Protected function to define the TrendVisionOne URL to build the required URI for the TrendVisionOne Plugin
     private function getTrendVisionOneUrl() {
-        if (!isset($this->pluginConfig['TrendVisionOne-URL']) || empty($this->pluginConfig['TrendVisionOne-URL'])) {
+        if (!isset($this->trendvisiononepluginConfig['TrendVisionOne-URL']) || empty($this->trendvisiononepluginConfig['TrendVisionOne-URL'])) {
             throw new Exception("TrendVisionOne URL not configured. Please set 'TrendVisionOne-URL' in config.json");
         }
         // Remove trailing slash if present
-        return rtrim($this->pluginConfig['TrendVisionOne-URL'], '/');
+        return rtrim($this->trendvisiononepluginConfig['TrendVisionOne-URL'], '/');
     }
 
         //Protected function to decrypt the password and build out a valid token for Veeam Plugin
     private function getAccessToken($force = false) {
         try {
-            if (!isset($this->pluginConfig['TrendVisionOne-Api-Token'])) {
+            if (!isset($this->trendvisiononepluginConfig['TrendVisionOne-Api-Token'])) {
                 throw new Exception("TrendVisionOne API Token not configured. Please set 'TrendVisionOne-Api-Token' in config.json");
             }
 
             try {
-                $apiToken = decrypt($this->pluginConfig['TrendVisionOne-Api-Token'], $this->config->get('Security','salt'));
+                $apiToken = decrypt($this->trendvisiononepluginConfig['TrendVisionOne-Api-Token'], $this->config->get('Security','salt'));
             } catch (Exception $e) {
                 $this->api->setAPIResponse('Error', 'Unable to decrypt TrendVisionOne API Token');
                 $this->logging->writeLog('TrendVisionOne-Api-Token', 'Unable to decrypt TrendVisionOne API Token', 'error');
@@ -230,7 +231,7 @@ class trendvisionone extends phpef {
         //Protected function to for making API Request to Veeam for Get/Post/Put/Delete
     public function makeApiRequest($Method, $Uri, $Data = "") {
         try {
-            if (!isset($this->pluginConfig['TrendVisionOne-URL']) || empty($this->pluginConfig['TrendVisionOne-URL'])) {
+            if (!isset($this->trendvisiononepluginConfig['TrendVisionOne-URL']) || empty($this->trendvisiononepluginConfig['TrendVisionOne-URL'])) {
                 throw new Exception("TrendVisionOne URL not configured");
             }
 
@@ -245,24 +246,19 @@ class trendvisionone extends phpef {
             );
 
             $url = $this->getApiEndpoint($Uri);
-            error_log("Making request to URL: " . $url);
-            error_log("Headers: " . json_encode($headers));
-            if ($Data) {
-                error_log("Request Data: " . json_encode($Data));
-            }
-            
+  
             if (in_array($Method, ["GET", "get"])) {
                 $Result = $this->api->query->$Method($url, $headers);
             } else {
                 $Result = $this->api->query->$Method($url, $Data, $headers);
             }
 
-            error_log("API Response: " . json_encode($Result));
+            // error_log("API Response: " . json_encode($Result));
 
             if (isset($Result->status_code) && $Result->status_code >= 400) {
                 throw new Exception("API request failed with status code: " . $Result->status_code . ", Response: " . json_encode($Result));
             }
-
+            
             return $Result;
 
         } catch (Exception $e) {
@@ -277,7 +273,7 @@ class trendvisionone extends phpef {
     public function getFullApiUrl() {
         try {
             $url = $this->getApiEndpoint("endpointSecurity/endpoints");
-            print_r($url);
+            // print_r($url);
             $this->api->setAPIResponse('Success', 'API URL Retrieved');
             $this->api->setAPIResponseData(['url' => $url]);
             return true;
@@ -287,30 +283,52 @@ class trendvisionone extends phpef {
         }
     }
 
-    public function GetVulnerableDevices() {
+    public function GetVulnerableDevices($nextLinkPage = null) {
         try {
             if (!$this->auth->checkAccess($this->config->get("Plugins", "TrendVisionOne")['ACL-READ'] ?? "ACL-READ")) {
                 throw new Exception("Access Denied - Missing READ permissions");
             }
 
             // Make API request
-            $result = $this->makeApiRequest("GET", "asrm/vulnerableDevices");
-            
+            if($nextLinkPage){
+                $url = explode($this->getTrendVisionOneUrl()."/v3.0/",$nextLinkPage)[1] ?? "";
+                $result = $this->makeApiRequest("GET", $url);   
+            }else{
+                // echo "hello got to line 302";
+                $result = $this->makeApiRequest("GET", "asrm/vulnerableDevices");
+                // print_r($result);
+            }
+
             if ($result === false) {
                 $this->api->setAPIResponse('Error', 'Failed to retrieve vulnerable devices - API request failed');
                 return false;
             }
 
             // Just pass through the raw response
-            $this->api->setAPIResponse('Success', 'Retrieved raw device data');
-            $this->api->setAPIResponseData($result);
-            return true;
+            // $this->api->setAPIResponse('Success', 'Retrieved raw device data');
+            // $this->api->setAPIResponseData($result);
+            return $result;
 
         } catch (Exception $e) {
             error_log("Error in GetVulnerableDevices: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
         }
+    }
+
+    public function GetAllVulnerableDevices () {
+        $DevicesR = $this->GetVulnerableDevices();
+        $DeviceResults = $DevicesR["items"];
+    
+        // $this->api->setAPIResponseData($DeviceResults);
+        $count = 0;
+        while (isset($DevicesR["nextLink"])) {
+            $DevicesR = $this->GetVulnerableDevices($DevicesR["nextLink"]);
+            $DeviceResults = array_merge($DeviceResults,$DevicesR["items"]);
+            $count++;
+            if ($count >= 10){break;} /// This limits to 1000 devices 
+        }
+        return $DeviceResults;
     }
 
     public function GetFullDesktops() {
@@ -339,7 +357,7 @@ class trendvisionone extends phpef {
             }
 
             // Debug the response structure
-            error_log("API Response structure: " . print_r($result, true));
+            // error_log("API Response structure: " . print_r($result, true));
             
             // Check if we have a valid response with totalCount
             if (isset($result->totalCount)) {
@@ -479,17 +497,14 @@ class trendvisionone extends phpef {
 
             try {
                 // Get data from API
-                if (!$this->GetVulnerableDevices()) {
-                    throw new Exception("Failed to retrieve vulnerability data from API");
-                }
+                $data = $this->GetAllVulnerableDevices();
 
-                $data = $GLOBALS['api'];
-                if (empty($data) || empty($data['data']) || empty($data['data']['items'])) {
+                if (empty($data)) {
                     throw new Exception("No vulnerability data received from API");
                 }
 
                 // Process each device
-                foreach ($data['data']['items'] as $device) {
+                foreach ($data as $device) {
                     // Insert device
                     $stmt = $this->sql->prepare("INSERT OR REPLACE INTO devices (id, device_name, criticality, created_at) VALUES (?, ?, ?, datetime('now'))");
                     $stmt->execute([$device['id'], $device['deviceName'], $device['criticality']]);
@@ -572,6 +587,225 @@ class trendvisionone extends phpef {
             error_log("[TrendVisionOne] Sync error: " . $e->getMessage());
             $this->api->setAPIResponse('Error', $e->getMessage());
             return false;
+        }
+    }
+
+    public function getVulnerabilities() {
+        try {
+            // First get the severity counts
+            $severityQuery = "
+                SELECT 
+                    CASE 
+                        WHEN cvss_score >= 7.0 THEN 'high'
+                        WHEN cvss_score >= 4.0 THEN 'medium'
+                        ELSE 'low'
+                    END as severity,
+                    COUNT(*) as count
+                FROM cve_records
+                GROUP BY severity
+                ORDER BY severity";
+            
+            $stmt = $this->sql->query($severityQuery);
+            $severityCounts = [
+                'high' => 0,
+                'medium' => 0,
+                'low' => 0
+            ];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $severityCounts[$row['severity']] = $row['count'];
+            }
+
+            // Get the main vulnerability data with all related information
+            $query = "
+                WITH cve_full_details AS (
+                    SELECT 
+                        cr.*,
+                        GROUP_CONCAT(DISTINCT ac.component_name) as affected_components,
+                        GROUP_CONCAT(
+                            json_object(
+                                'packageName', lr.package_name,
+                                'minimumPatchedPackageVersion', lr.minimum_patched_version,
+                                'productDistribution', lr.product_distribution,
+                                'releaseDate', lr.release_date,
+                                'securityAdvisoryId', lr.security_advisory_id,
+                                'securityAdvisoryLink', lr.security_advisory_link
+                            )
+                        ) as linux_remediations
+                    FROM cve_records cr
+                    LEFT JOIN affected_components ac ON cr.id = ac.cve_id
+                    LEFT JOIN linux_remediations lr ON cr.id = lr.cve_id
+                    GROUP BY cr.id
+                )
+                SELECT 
+                    d.id,
+                    d.device_name,
+                    d.criticality,
+                    GROUP_CONCAT(DISTINCT di.ip_address) as ip_addresses,
+                    COUNT(DISTINCT dcm.cve_id) as cve_count,
+                    MAX(cfd.cvss_score) as highest_cvss,
+                    MAX(cfd.event_risk_level) as highest_risk,
+                    GROUP_CONCAT(
+                        json_object(
+                            'id', cfd.id,
+                            'cvss_score', cfd.cvss_score,
+                            'event_risk_level', cfd.event_risk_level,
+                            'description', cfd.description,
+                            'global_exploit_activity_level', cfd.global_exploit_activity_level,
+                            'exploit_attempt_count', cfd.exploit_attempt_count,
+                            'mitigation_status', cfd.mitigation_status,
+                            'published_datetime', cfd.published_datetime,
+                            'created_at', cfd.created_at,
+                            'updated_at', cfd.updated_at,
+                            'affectedComponents', json(CASE 
+                                WHEN cfd.affected_components IS NULL THEN '[]'
+                                ELSE json_array(cfd.affected_components) 
+                            END),
+                            'mitigationOption', json_object(
+                                'linuxRemediations', CASE 
+                                    WHEN cfd.linux_remediations IS NULL THEN '[]'
+                                    ELSE json_array(cfd.linux_remediations)
+                                END
+                            )
+                        )
+                    ) as cve_details
+                FROM devices d
+                LEFT JOIN device_ips di ON d.id = di.device_id
+                LEFT JOIN device_cve_mapping dcm ON d.id = dcm.device_id
+                LEFT JOIN cve_full_details cfd ON dcm.cve_id = cfd.id
+                GROUP BY d.id, d.device_name, d.criticality
+                ORDER BY highest_cvss DESC";
+
+            $stmt = $this->sql->query($query);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Format the results
+            foreach ($results as &$row) {
+                // Format IP addresses
+                $row['ip_addresses'] = $row['ip_addresses'] ? explode(',', $row['ip_addresses']) : [];
+                
+                // Parse and format CVE details
+                if ($row['cve_details']) {
+                    $cveDetails = array_map(function($cve) {
+                        $cve = json_decode($cve, true);
+                        // Convert string arrays back to arrays
+                        if (isset($cve['affectedComponents'])) {
+                            $cve['affectedComponents'] = array_filter(explode(',', $cve['affectedComponents']));
+                        }
+                        if (isset($cve['mitigationOption']['linuxRemediations'])) {
+                            $remediations = json_decode($cve['mitigationOption']['linuxRemediations'], true);
+                            $cve['mitigationOption']['linuxRemediations'] = array_filter($remediations);
+                        }
+                        return $cve;
+                    }, explode(',', $row['cve_details']));
+                    $row['cve_records'] = $cveDetails;
+                } else {
+                    $row['cve_records'] = [];
+                }
+                unset($row['cve_details']);
+            }
+
+            return [
+                'severity_counts' => $severityCounts,
+                'devices' => $results
+            ];
+        } catch (PDOException $e) {
+            error_log("[TrendVisionOne] Error fetching vulnerabilities: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    public function getLastSync() {
+        try {
+            // First check if the misc table exists
+            $tableExists = $this->sql->query("SELECT name FROM sqlite_master WHERE type='table' AND name='misc'")->fetchColumn();
+            if (!$tableExists) {
+                $this->verifyDatabaseStructure();
+            }
+
+            // Get the last sync time
+            $stmt = $this->sql->query("SELECT strftime('%s', value) as unix_timestamp FROM misc WHERE key = 'last_sync'");
+            $lastSync = $stmt->fetchColumn();
+            
+            if (!$lastSync) {
+                // Initialize last sync time if it doesn't exist
+                $stmt = $this->sql->prepare("INSERT OR REPLACE INTO misc (key, value) VALUES ('last_sync', datetime('now'))");
+                $stmt->execute();
+                return strtotime('now');
+            }
+            
+            return $lastSync;
+            
+        } catch (PDOException $e) {
+            error_log("[TrendVisionOne] Error fetching last sync time: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function getVulnerabilitiesForDevice($deviceId) {
+        try {
+            error_log("[TrendVisionOne] Getting vulnerabilities for device ID: " . $deviceId);
+            
+            $query = "
+                SELECT 
+                    cr.*,
+                    GROUP_CONCAT(DISTINCT ac.component_name) as affected_components,
+                    GROUP_CONCAT(DISTINCT lr.package_name || '|' || lr.minimum_patched_version || '|' || lr.product_distribution || '|' || 
+                                         lr.release_date || '|' || lr.security_advisory_id || '|' || lr.security_advisory_link) as linux_remediations
+                FROM devices d
+                JOIN device_cve_mapping dcm ON d.id = dcm.device_id
+                JOIN cve_records cr ON dcm.cve_id = cr.id
+                LEFT JOIN affected_components ac ON cr.id = ac.cve_id
+                LEFT JOIN linux_remediations lr ON cr.id = lr.cve_id
+                WHERE d.id = ?
+                GROUP BY cr.id
+                ORDER BY cr.cvss_score DESC";
+            
+            $stmt = $this->sql->prepare($query);
+            $stmt->execute([$deviceId]);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (empty($results)) {
+                error_log("[TrendVisionOne] No vulnerabilities found for device ID: " . $deviceId);
+                $this->api->setAPIResponse('Error', 'No vulnerabilities found for device');
+                return [];
+            }
+            
+            // Format the results
+            foreach ($results as &$row) {
+                // Format basic fields
+                $row['cvss_score'] = floatval($row['cvss_score'] ?? 0);
+                $row['event_risk_level'] = $row['event_risk_level'] ?? 'None';
+                $row['exploit_attempt_count'] = intval($row['exploit_attempt_count'] ?? 0);
+                
+                // Format affected components
+                $row['affectedComponents'] = $row['affected_components'] ? explode(',', $row['affected_components']) : [];
+                unset($row['affected_components']);
+                
+                // Format linux remediations
+                $row['mitigationOption'] = ['linuxRemediations' => []];
+                if (!empty($row['linux_remediations'])) {
+                    $remediations = explode(',', $row['linux_remediations']);
+                    foreach ($remediations as $remediation) {
+                        list($package, $version, $dist, $date, $advisory, $link) = explode('|', $remediation);
+                        $row['mitigationOption']['linuxRemediations'][] = [
+                            'packageName' => $package,
+                            'minimumPatchedPackageVersion' => $version,
+                            'productDistribution' => $dist,
+                            'releaseDate' => $date,
+                            'securityAdvisoryId' => $advisory,
+                            'securityAdvisoryLink' => $link
+                        ];
+                    }
+                }
+                unset($row['linux_remediations']);
+            }
+            
+            $this->api->setAPIResponse('Success', 'Retrieved vulnerability data from database');
+            return $results;
+            
+        } catch (PDOException $e) {
+            error_log("[TrendVisionOne] Error fetching device vulnerabilities: " . $e->getMessage());
+            throw $e;
         }
     }
 }
