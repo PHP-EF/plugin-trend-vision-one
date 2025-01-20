@@ -89,13 +89,6 @@ function initTable() {
             title: "Device Name",
             sortable: true
         }, {
-            field: "criticality",
-            title: "Criticality",
-            sortable: true,
-            formatter: function(value) {
-                return value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
-            }
-        }, {
             field: "ip_addresses",
             title: "IP Addresses",
             formatter: function(value) {
@@ -114,10 +107,6 @@ function initTable() {
             formatter: function(value) {
                 return value ? parseFloat(value).toFixed(1) : "0.0";
             }
-        }, {
-            field: "highest_risk",
-            title: "Risk Level",
-            sortable: true
         }, {
             field: "actions",
             title: "Actions",
