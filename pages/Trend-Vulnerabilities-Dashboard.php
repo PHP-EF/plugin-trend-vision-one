@@ -89,6 +89,13 @@ function initTable() {
             title: "Device Name",
             sortable: true
         }, {
+            field: "criticality",
+            title: "Criticality",
+            sortable: true,
+            formatter: function(value) {
+                return value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
+            }
+        }, {
             field: "ip_addresses",
             title: "IP Addresses",
             formatter: function(value) {
